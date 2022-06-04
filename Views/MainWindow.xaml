@@ -1,0 +1,115 @@
+﻿<Window
+    x:Class="PresentationMovieMaker.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PresentationMovieMaker.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
+    Title="{Binding Title.Value}"
+    Width="700"
+    Height="600"
+    AllowDrop="True"
+    mc:Ignorable="d">
+    <Window.DataContext>
+        <vm:MainWindowViewModel />
+    </Window.DataContext>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ResourceDictionary.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Window.InputBindings>
+        <KeyBinding Command="{Binding SaveSettingCommand}" Gesture="Ctrl+S" />
+    </Window.InputBindings>
+
+    <!--<Grid>
+        <TextBox Name="textbox" Margin="5" AllowDrop="True" Text="ここにドロップしてください" Drop="TextBox_Drop" PreviewDragOver="textbox_PreviewDragOver" />
+    </Grid>-->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        <Menu>
+            <MenuItem Header="ファイル(_F)">
+                <MenuItem Command="{Binding CreateNewSettingCommand}" Header="新規作成" />
+            </MenuItem>
+        </Menu>
+        <TabControl Grid.Row="1">
+            <TabItem Header="基本設定">
+                <StackPanel>
+                    <Label>設定ファイル:</Label>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="80" />
+                            <ColumnDefinition Width="80" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox
+                            AllowDrop="True"
+                            Drop="TextBox_Drop"
+                            Text="{Binding SettingPath.Value}" />
+                        <Button Grid.Column="1" Command="{Binding OpenSettingFolderCommand}">フォルダ開く</Button>
+                        <Button Grid.Column="2" Command="{Binding OpenSettingCommand}">ファイル開く</Button>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Button Command="{Binding OpenPlayWindowCommand}">動画再生ウインドウを開く</Button>
+                        <Button
+                            Grid.Column="1"
+                            Command="{Binding PlayCommand}"
+                            Content="{Binding PlayButtonLabel.Value}" />
+                        <Button
+                            Grid.Column="2"
+                            Command="{Binding PauseCommand}"
+                            Content="{Binding PauseButtonLabel.Value}"
+                            IsEnabled="{Binding IsPlaying.Value}" />
+
+                    </Grid>
+                    <StackPanel Orientation="Horizontal" />
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="詳細設定">
+                <StackPanel Orientation="Vertical">
+                    <ItemsControl ItemsSource="{Binding Settings}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ContentPresenter Content="{Binding .}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+
+        <GridSplitter
+            Grid.Row="1"
+            Height="5"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Bottom"
+            ShowsPreview="True" />
+        <local:MovieSettingView Grid.Row="2" DataContext="{Binding MovieSetting.Value}" />
+        <GridSplitter
+            Grid.Row="3"
+            Height="5"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Bottom"
+            ShowsPreview="True" />
+        <TextBox
+            Grid.Row="4"
+            AcceptsReturn="True"
+            Text="{Binding Log.Value}"
+            TextChanged="TextBox_TextChanged" />
+
+    </Grid>
+</Window>

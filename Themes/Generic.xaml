@@ -1,0 +1,169 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:PresentationMovieMaker.Views"
+    xmlns:view="clr-namespace:PresentationMovieMaker.Views"
+    xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels">
+
+    <Style TargetType="{x:Type view:SliderBox}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type view:SliderBox}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition Width="40" />
+                        </Grid.ColumnDefinitions>
+                        <Slider
+                            IsSnapToTickEnabled="True"
+                            Maximum="{Binding Maximum, RelativeSource={RelativeSource AncestorType={x:Type view:SliderBox}}}"
+                            Minimum="{Binding Minimum, RelativeSource={RelativeSource AncestorType={x:Type view:SliderBox}}}"
+                            TickFrequency="{Binding Interval, RelativeSource={RelativeSource AncestorType={x:Type view:SliderBox}}}"
+                            Value="{Binding Value, RelativeSource={RelativeSource AncestorType={x:Type view:SliderBox}}}" />
+                        <TextBox Grid.Column="1" Text="{Binding Value, RelativeSource={RelativeSource AncestorType={x:Type view:SliderBox}}}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate DataType="{x:Type vm:PathViewModel}">
+        <local:PathView DataContext="{Binding .}" />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:PathPropertyViewModel}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+            <Label Content="{Binding Name}" />
+            <local:PathView Grid.Column="1" DataContext="{Binding Value}" />
+        </Grid>
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:DoublePropertyViewModel}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+            <Label Content="{Binding Name}" />
+            <view:SliderBox Grid.Column="1" Value="{Binding Value}" />
+        </Grid>
+    </DataTemplate>
+
+
+    <DataTemplate DataType="{x:Type vm:NarrationInfoViewModel}">
+        <StackPanel>
+            <Label>読み上げテキスト:</Label>
+            <Button Command="{Binding ReadTextCommand}" Content="{Binding ReadTextButtonLabel.Value}" />
+            <TextBox
+                MinHeight="150"
+                AcceptsReturn="True"
+                Text="{Binding SpeechText.Value}"
+                TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Padding="0,0,10,0" Text="{Binding TotalCharCount.Value, Converter={x:Static view:AddSuffixConverter.Instance}, ConverterParameter='文字'}" />
+                <TextBlock Text="{Binding TotalDuration.Value, Converter={x:Static view:TimeSpanToStringConverter.Instance}}" />
+            </StackPanel>
+            <Expander Header="読み上げ設定">
+                <StackPanel Orientation="Vertical">
+                    <Label>ボリューム:</Label>
+                    <view:SliderBox
+                        Interval="0.01"
+                        Maximum="1.0"
+                        Minimum="0.0"
+                        Value="{Binding SpeechVolume.Value}" />
+                    <Label>速度:</Label>
+                    <view:SliderBox
+                        Interval="0.05"
+                        Maximum="1.5"
+                        Minimum="0.5"
+                        Value="{Binding SpeechSpeedRate.Value}" />
+                    <Label>発声前待ち時間(ms):</Label>
+                    <view:SliderBox
+                        Interval="100"
+                        Maximum="15000"
+                        Minimum="0"
+                        Value="{Binding PreBlankMilliseconds.Value, Converter={x:Static view:IntToDoubleConverter.Instance}}" />
+                    <Label>発声後待ち時間(ms):</Label>
+                    <view:SliderBox
+                        Interval="100"
+                        Maximum="15000"
+                        Minimum="0"
+                        Value="{Binding PostBlankMilliseconds.Value, Converter={x:Static view:IntToDoubleConverter.Instance}}" />
+                    <Label>下からの表示オフセット:</Label>
+                    <view:SliderBox
+                        Interval="1"
+                        Maximum="1000"
+                        Minimum="0"
+                        Value="{Binding CaptionMarginBottom.Value}" />
+                    <Label>テキストの色(RGBA):</Label>
+                    <view:SliderBox
+                        Interval="1"
+                        Maximum="255"
+                        Minimum="0"
+                        Value="{Binding TextColorR.Value}" />
+                    <view:SliderBox
+                        Interval="1"
+                        Maximum="255"
+                        Minimum="0"
+                        Value="{Binding TextColorG.Value}" />
+                    <view:SliderBox
+                        Interval="1"
+                        Maximum="255"
+                        Minimum="0"
+                        Value="{Binding TextColorB.Value}" />
+                    <view:SliderBox
+                        Interval="1"
+                        Maximum="255"
+                        Minimum="0"
+                        Value="{Binding TextColorA.Value}" />
+                </StackPanel>
+            </Expander>
+            <Label>オーディオパス:</Label>
+            <StackPanel Orientation="Horizontal">
+                <Button
+                    Width="20"
+                    Margin="5"
+                    Command="{Binding AddAudioPathCommand}">
+                    ＋
+                </Button>
+                <Button
+                    Width="20"
+                    Margin="5"
+                    Command="{Binding RemoveAudioPathCommand}">
+                    －
+                </Button>
+                <Button
+                    Width="120"
+                    Margin="5"
+                    Command="{Binding PlaySelectedAudioCommand}"
+                    Content="{Binding PlaySelectedAudioButtonLabel.Value}"
+                    IsEnabled="{Binding IsAudioPathSelected.Value}" />
+            </StackPanel>
+            <ListBox ItemsSource="{Binding AudioPaths}" SelectedItem="{Binding SelectedAudioPath.Value}">
+                <ListBox.Template>
+                    <ControlTemplate>
+                        <ItemsPresenter />
+                    </ControlTemplate>
+                </ListBox.Template>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <view:PathView MinWidth="300" DataContext="{Binding .}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <Label>オーディオボリューム:</Label>
+            <view:SliderBox
+                Interval="0.01"
+                Maximum="1.0"
+                Minimum="0.0"
+                Value="{Binding AudioVolume.Value}" />
+            <CheckBox IsChecked="{Binding IsAudioParallel.Value}">オーディオ並列再生</CheckBox>
+        </StackPanel>
+    </DataTemplate>
+
+</ResourceDictionary>
