@@ -6,7 +6,7 @@ using System.Speech.Synthesis;
 namespace PresentationMovieMakerTest
 {
     [TestClass]
-    public class UnitTest1
+    public class SpeechTest
     {
         [TestMethod]
         public void SplitTextTest()
@@ -59,7 +59,7 @@ namespace PresentationMovieMakerTest
             }
         }
 
-        public System.TimeSpan CalculateDuration(System.Speech.Synthesis.SpeechSynthesizer synth, string message)
+        private System.TimeSpan CalculateDuration(System.Speech.Synthesis.SpeechSynthesizer synth, string message)
         {
             using (var stream = new System.IO.MemoryStream())
             {

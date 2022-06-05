@@ -4,6 +4,7 @@ using Reactive.Bindings;
 using Reactive.Bindings.Extensions;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Text;
@@ -37,6 +38,11 @@ namespace PresentationMovieMaker.ViewModels
         public bool IsEmpty()
         {
             return string.IsNullOrEmpty(Path.Value);
+        }
+
+        public bool IsValidPath()
+        {
+            return !IsEmpty() && (File.Exists(Path.Value) || Directory.Exists(Path.Value));
         }
 
         public ReactiveProperty<string> Path { get; } = new ReactiveProperty<string>();

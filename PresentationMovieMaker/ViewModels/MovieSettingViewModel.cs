@@ -33,6 +33,8 @@ namespace PresentationMovieMaker.ViewModels
             Properties.Add(ImageMouthNPath);
             Properties.Add(ImageEyeClosePath);
             Properties.Add(ImageEyeOpenPath);
+            Properties.Add(DefaultPageTurningAudioPath);
+            Properties.Add(DefaultPageTurningAudioVolume);
 
             PageInfos.CollectionChanged += (o, e) =>
             {
@@ -368,6 +370,7 @@ namespace PresentationMovieMaker.ViewModels
             ImageEyeClosePath.Value.Path.Value = dataModel.ImageEyeClosePath;
             ImageFaceBasePath.Value.Path.Value = dataModel.ImageFaceBasePath;
             ImageBodyPath.Value.Path.Value = dataModel.ImageBodyPath;
+            DefaultPageTurningAudioPath.Value.Path.Value = dataModel.DefaultPageTurningAudioPath;
         }
 
         public ILogger Logger => _logger;
@@ -405,6 +408,13 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<PathViewModel> ImageEyeClosePath { get; set; } = new PathPropertyViewModel(nameof(ImageEyeClosePath));
         public ReactiveProperty<PathViewModel> ImageBodyPath { get; set; } = new PathPropertyViewModel(nameof(ImageBodyPath));
         public ReactiveProperty<PathViewModel> ImageFaceBasePath { get; set; } = new PathPropertyViewModel(nameof(ImageFaceBasePath));
+
+        public ReactiveProperty<PathViewModel> DefaultPageTurningAudioPath { get; set; } = new PathPropertyViewModel(nameof(DefaultPageTurningAudioPath));
+
+        public DoublePropertyViewModel DefaultPageTurningAudioVolume { get; set; } = new DoublePropertyViewModel(nameof(DefaultPageTurningAudioVolume));
+
+
+        
 
 
         public ReactiveProperty<int> TotalCharCount { get; } = new ReactiveProperty<int>();
@@ -534,6 +544,7 @@ namespace PresentationMovieMaker.ViewModels
             serial.ImageEyeClosePath = ImageEyeClosePath.Value.ActualPath.Value;
             serial.ImageFaceBasePath = ImageFaceBasePath.Value.ActualPath.Value;
             serial.ImageBodyPath = ImageBodyPath.Value.ActualPath.Value;
+            serial.DefaultPageTurningAudioPath = DefaultPageTurningAudioPath.Value.ActualPath.Value;
             return serial;
         }
 

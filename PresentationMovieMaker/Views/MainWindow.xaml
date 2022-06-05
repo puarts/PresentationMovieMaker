@@ -59,6 +59,10 @@
                         <Button Grid.Column="2" Command="{Binding OpenSettingCommand}">ファイル開く</Button>
                     </Grid>
                     <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
                             <ColumnDefinition />
@@ -75,6 +79,13 @@
                             Content="{Binding PauseButtonLabel.Value}"
                             IsEnabled="{Binding IsPlaying.Value}" />
 
+                        <Button Grid.Row="1" Command="{Binding SaveSlideCacheCommand}">キャッシュ保存</Button>
+                        <Button
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Command="{Binding RelocateNarrationInfoCommand}">
+                            ナレーション再配置
+                        </Button>
                     </Grid>
                     <StackPanel Orientation="Horizontal" />
                 </StackPanel>

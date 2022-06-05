@@ -23,6 +23,7 @@ using System.Reflection;
 using System.Resources;
 using Microsoft.CognitiveServices.Speech;
 using System.Speech.Recognition;
+using System.Drawing;
 
 namespace PresentationMovieMaker.ViewModels
 {
@@ -239,6 +240,90 @@ namespace PresentationMovieMaker.ViewModels
                 SaveSettings(SettingPath.Value);
             }).AddTo(Disposable);
 
+            const string cacheDirName = "SlideCache";
+            const float cacheImageSizeMultiply = 1.0f / 8.0f;
+            Subscribe(SaveSlideCacheCommand, () =>
+            {
+                var dir = Path.GetDirectoryName(SettingPath.Value);
+                if (dir is null || !Directory.Exists(dir))
+                {
+                    WriteErrorLogLine($"設定ファイルのディレクトリが取得できません。");
+                    return;
+                }
+
+                _ = Task.Run(() =>
+                {
+                    var cacheDir = Path.Combine(dir, cacheDirName);
+                    if (Directory.Exists(cacheDir))
+                    {
+                        Directory.Delete(cacheDir, true);
+                    }
+                    Directory.CreateDirectory(cacheDir);
+                    foreach (var path in EnumerateSlideImagePaths())
+                    {
+                        var resizedImage = ImageUtility.ReadResizedImage(path, cacheImageSizeMultiply);
+
+                        string outputPath = Path.Combine(cacheDir, Path.GetFileName(path));
+                        resizedImage.Save(outputPath);
+                        WriteLogLine($"キャッシュ保存: {outputPath}");
+                    }
+                });
+            });
+
+            Subscribe(RelocateNarrationInfoCommand, () =>
+            {
+                var dir = Path.GetDirectoryName(SettingPath.Value);
+                if (dir is null || !Directory.Exists(dir))
+                {
+                    WriteErrorLogLine($"設定ファイルのディレクトリが取得できません。");
+                    return;
+                }
+
+                _ = Task.Run(() =>
+                {
+
+                    var cacheDir = Path.Combine(dir, cacheDirName);
+                    var cacheImages = Directory.EnumerateFiles(cacheDir).Select(x => ImageData.CreateFromFile(x)).ToArray();
+                    var relocationMap = new Dictionary<string, string>();
+                    foreach (var filePath in EnumerateSlideImagePaths())
+                    {
+                        var image = ImageUtility.ReadResizedImage(filePath, cacheImageSizeMultiply);
+                        var imageData = ImageData.CreateFromImage(image, filePath);
+
+                        var matchedImagePath = ImageUtility.FindMatchedImage(imageData, cacheImages, 0);
+                        if (matchedImagePath is null)
+                        {
+                            continue;
+                        }
+
+                        var source = Path.GetFileNameWithoutExtension(filePath);
+                        var destination = Path.GetFileNameWithoutExtension(matchedImagePath) ?? throw new Exception();
+                        WriteLogLine($"{source} => {destination}");
+                        if (source != destination)
+                        {
+                            relocationMap[source] = destination;
+                        }
+                    }
+
+                    var copiedPages = MovieSetting.Value.PageInfos.Select(x => x.ToSerializable()).ToDictionary(x => Path.GetFileNameWithoutExtension(x.ImagePath));
+                    foreach (var pageInfo in MovieSetting.Value.PageInfos)
+                    {
+                        var name = Path.GetFileNameWithoutExtension(pageInfo.ImagePath.Value.Path.Value);
+                        if (!relocationMap.ContainsKey(name))
+                        {
+                            continue;
+                        }
+
+                        var destName = relocationMap[name];
+                        WriteLogLine($"コピー {destName} => {name}");
+                        var serial = copiedPages[destName] ?? throw new Exception();
+                        var origPath = pageInfo.ImagePath.Value.Path.Value;
+                        pageInfo.DeepCopyFrom(serial);
+                        pageInfo.ImagePath.Value.Path.Value = origPath;
+                    }
+                });
+            });
+
             SettingPath.Subscribe(path =>
             {
                 LoadSettings(path);
@@ -297,6 +382,18 @@ namespace PresentationMovieMaker.ViewModels
             {
                 SoundUtility.BouyomiChanRemoteTalkExePath = value;
             });
+        }
+
+        private IEnumerable<string> EnumerateSlideImagePaths()
+        {
+            return MovieSetting.Value.PageInfos.Select(pageInfo =>
+            {
+                if (pageInfo.ImagePath.Value.IsEmpty())
+                {
+                    return null;
+                }
+                return pageInfo.ImagePath.Value.Path.Value;
+            }).Where(x => x != null).Cast<string>();
         }
 
         private void MainWindowViewModel_SpeakProgress(object? sender, System.Speech.Synthesis.SpeakProgressEventArgs e)
@@ -586,21 +683,27 @@ namespace PresentationMovieMaker.ViewModels
                                     PlayWindow?.PlayMediaElement(currentBufferIndex);
                                 });
 
+                                // ページ切り替え時の音が設定されていない場合は、デフォルトのSEを再生
+                                if (_pageIndex != 0
+                                && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0))
+                                {
+                                    var audioPath = MovieSetting.Value.DefaultPageTurningAudioPath.Value;
+                                    if (!audioPath.IsEmpty())
+                                    {
+                                        PlayNarrationAudio(audioPath, 1.0f, linkedCt);
+                                    }
+                                }
+
                                 foreach (var info in pageInfo.NarrationInfos)
                                 {
                                     void PlayAllNarrationAudio(NarrationInfoViewModel info)
                                     {
-                                        foreach (var audioPath in info.AudioPaths)
+                                        if (info.AudioPaths.Count > 0)
                                         {
-                                            WaitResume();
-                                            var actualPath = audioPath.ActualPath.Value;
-                                            if (!File.Exists(actualPath))
+                                            foreach (var audioPath in info.AudioPaths)
                                             {
-                                                WriteErrorLogLine($"ファイルが見つかりません。\"{actualPath}\"");
-                                                continue;
+                                                PlayNarrationAudio(audioPath, (float)info.AudioVolume.Value, linkedCt);
                                             }
-
-                                            PlayAudio(actualPath, (float)info.AudioVolume.Value, linkedCt);
                                         }
                                     }
 
@@ -714,6 +817,19 @@ namespace PresentationMovieMaker.ViewModels
             }
 
             task.Wait();
+        }
+
+        private void PlayNarrationAudio(PathViewModel audioPath, float volume, CancellationToken linkedCt)
+        {
+            WaitResume();
+            var actualPath = audioPath.ActualPath.Value;
+            if (!File.Exists(actualPath))
+            {
+                WriteErrorLogLine($"ファイルが見つかりません。\"{actualPath}\"");
+                return;
+            }
+
+            PlayAudio(actualPath, (float)volume, linkedCt);
         }
 
         private void StartBgm(string bgmPath, float targetVolume, bool isFadeInEnabled = false, int fadeMilliseconds = 1000)
@@ -1033,6 +1149,9 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveCommand OpenSettingFolderCommand { get; } = new ReactiveCommand();
         public ReactiveCommand CreateNewSettingCommand { get; } = new ReactiveCommand();
 
+        public ReactiveCommand SaveSlideCacheCommand { get; } = new ReactiveCommand();
+        public ReactiveCommand RelocateNarrationInfoCommand { get; } = new ReactiveCommand();
+
         public ReactiveProperty<double> PlayWindowWidth { get; } = new ReactiveProperty<double>(640);
         public ReactiveProperty<double> PlayWindowHeight { get; } = new ReactiveProperty<double>(480);
 
@@ -1169,12 +1288,12 @@ namespace PresentationMovieMaker.ViewModels
         private void SetupFace()
         {
             string root = @"..\..\..\Resources\boy";
-            _pronuunciationBitmaps['a'] = CreateBitmapSource(Path.Combine(root, @"mouth_boy1_a.png"));
-            _pronuunciationBitmaps['i'] = CreateBitmapSource(Path.Combine(root, @"mouth_boy2_i.png"));
-            _pronuunciationBitmaps['u'] = CreateBitmapSource(Path.Combine(root, @"mouth_boy3_u.png"));
-            _pronuunciationBitmaps['e'] = CreateBitmapSource(Path.Combine(root, @"mouth_boy4_e.png"));
-            _pronuunciationBitmaps['o'] = CreateBitmapSource(Path.Combine(root, @"mouth_boy5_o.png"));
-            _pronuunciationBitmaps['n'] = CreateBitmapSource(Path.Combine(root, @"mouth_boy6_n.png"));
+            UpdateBitmapSource(Path.Combine(root, @"mouth_boy1_a.png"), x => _pronuunciationBitmaps['a'] = x);
+            UpdateBitmapSource(Path.Combine(root, @"mouth_boy1_i.png"), x => _pronuunciationBitmaps['i'] = x);
+            UpdateBitmapSource(Path.Combine(root, @"mouth_boy1_u.png"), x => _pronuunciationBitmaps['u'] = x);
+            UpdateBitmapSource(Path.Combine(root, @"mouth_boy1_e.png"), x => _pronuunciationBitmaps['e'] = x);
+            UpdateBitmapSource(Path.Combine(root, @"mouth_boy1_o.png"), x => _pronuunciationBitmaps['o'] = x);
+            UpdateBitmapSource(Path.Combine(root, @"mouth_boy1_n.png"), x => _pronuunciationBitmaps['n'] = x);
             _eyeBitmaps[EyePattern.Open] = null;
             _eyeBitmaps[EyePattern.Close] = null;
 
@@ -1198,9 +1317,17 @@ namespace PresentationMovieMaker.ViewModels
 
         private void UpdateBitmapSource(PathViewModel pathViewModel, Action<BitmapSource> update)
         {
-            if (!pathViewModel.IsEmpty())
+            if (pathViewModel.IsValidPath())
             {
                 update(CreateBitmapSource(pathViewModel.ActualPath.Value));
+            }
+        }
+
+        private void UpdateBitmapSource(string path, Action<BitmapSource> update)
+        {
+            if (File.Exists(path))
+            {
+                update(CreateBitmapSource(path));
             }
         }
 
