@@ -62,6 +62,7 @@ namespace PresentationMovieMaker.ViewModels
             Settings.Add(FaceRotateCenterX);
             Settings.Add(FaceRotateCenterY);
             Settings.Add(FaceRotateSpeed);
+            Settings.Add(ShowTimeCode);
 
             MovieSetting = new MovieSettingViewModel(this)
             {
@@ -126,6 +127,18 @@ namespace PresentationMovieMaker.ViewModels
                     WriteLogLine("再生開始");
                     CurrentTime.Stop();
                     CurrentTime.Start();
+                    var timerCancellationTokenSource = new CancellationTokenSource();
+                    var timerCancellationToken = timerCancellationTokenSource.Token;
+                    var timerUpdateTask = Task.Run(() =>
+                    {
+                        while (!timerCancellationToken.IsCancellationRequested)
+                        {
+                            CurrentTimeText.Value = CurrentTime.Elapsed.ToString(@"hh\:mm\:ss");
+                            Thread.Sleep(500);
+                        }
+                        CurrentTimeText.Value = "00:00:00";
+                    }, timerCancellationToken);
+
                     CurrentAnimationTime.Value = 0.0;
                     IsPlaying.Value = true;
                     _cancellationTokenSource = new CancellationTokenSource();
@@ -170,6 +183,8 @@ namespace PresentationMovieMaker.ViewModels
                             IsCaptionVisible.Value = false;
                             StartPageIndex = 0;
                             CurrentTime.Stop();
+
+                            timerCancellationTokenSource.Cancel();
                         }
                     }, ct);
                 }
@@ -1109,6 +1124,7 @@ namespace PresentationMovieMaker.ViewModels
         public DoublePropertyViewModel FaceRotateCenterX { get; } = new DoublePropertyViewModel("顔の回転中心X");
         public DoublePropertyViewModel FaceRotateCenterY { get; } = new DoublePropertyViewModel("顔の回転中心Y");
         public DoublePropertyViewModel FaceRotateSpeed { get; } = new DoublePropertyViewModel("顔の回転速度");
+        public BoolPropertyViewModel ShowTimeCode { get; } = new BoolPropertyViewModel("タイムコード表示");
 
         public ReactiveProperty<double> FaceOpacity { get; } = new ReactiveProperty<double>(1.0);
 
@@ -1196,6 +1212,7 @@ namespace PresentationMovieMaker.ViewModels
         public ObservableCollection<IPropertyViewModel> Settings { get; } = new ObservableCollection<IPropertyViewModel>();
 
         public Stopwatch CurrentTime { get; } = new Stopwatch();
+        public ReactiveProperty<string> CurrentTimeText { get; } = new ReactiveProperty<string>("00:00:00");
         public ReactiveProperty<double> CurrentAnimationTime { get; } = new ReactiveProperty<double>(0.0);
 
         public void WriteLogLine(string message)

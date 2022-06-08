@@ -218,6 +218,7 @@
                 Height="{Binding ElementName=mainCanvas, Path=ActualHeight}"
                 Background="Black"
                 Opacity="{Binding BlackOpacity.Value}" />
+            <TextBlock Text="{Binding CurrentTimeText.Value}" Visibility="{Binding ShowTimeCode.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}" />
         </Canvas>
 
     </Grid>

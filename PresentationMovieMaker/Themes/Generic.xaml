@@ -51,6 +51,15 @@
             <view:SliderBox Grid.Column="1" Value="{Binding Value}" />
         </Grid>
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:BoolPropertyViewModel}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+            <CheckBox Content="{Binding Name}" IsChecked="{Binding Value}" />
+        </Grid>
+    </DataTemplate>
 
 
     <DataTemplate DataType="{x:Type vm:NarrationInfoViewModel}">

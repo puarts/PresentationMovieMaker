@@ -68,4 +68,11 @@ namespace PresentationMovieMaker.ViewModels
         {
         }
     }
+    public class BoolPropertyViewModel : PropertyViewModel<bool>
+    {
+        public BoolPropertyViewModel(string name)
+            : base(name)
+        {
+        }
+    }
 }
