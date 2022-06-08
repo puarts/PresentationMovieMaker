@@ -109,7 +109,7 @@
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
             ShowsPreview="True" />
-        <local:MovieSettingView Grid.Row="2" DataContext="{Binding MovieSetting.Value}" />
+        <local:MovieSettingView Grid.Row="2" DataContext="{Binding MovieSetting}" />
         <GridSplitter
             Grid.Row="3"
             Height="5"

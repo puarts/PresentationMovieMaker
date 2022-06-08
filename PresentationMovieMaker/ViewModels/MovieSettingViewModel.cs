@@ -330,47 +330,7 @@ namespace PresentationMovieMaker.ViewModels
         public MovieSettingViewModel(MovieSetting dataModel, ILogger logger)
             : this(logger)
         {
-            if (dataModel.PageInfos is not null)
-            {
-                for (int i = 0; i < dataModel.PageInfos.Count; ++i)
-                {
-                    var info = dataModel.PageInfos[i];
-                    PageInfos.Add(new PageInfoViewModel(info, i + 1, this));
-                }
-            }
-
-            ImageRoot.Value = dataModel.ImageRoot;
-            AudioRoot.Value = dataModel.AudioRoot;
-            if (SoundUtility.IsValidVoiceName(dataModel.VoiceName))
-            {
-                VoiceName.Value = dataModel.VoiceName;
-            }
-
-            BgmPath.Value = dataModel.BgmPath;
-            BgmVolume.Value = dataModel.BgmVolume;
-            ShowPageNumber.Value = dataModel.ShowPageNumber;
-            PageNumberPosX.Value = dataModel.PageNumberPosX;
-            PageNumberPosY.Value = dataModel.PageNumberPosY;
-            PageNumberFontSize.Value = dataModel.PageNumberFontSize;
-            BgmFadeOutMilliseconds.Value = dataModel.BgmFadeOutMilliseconds;
-            CaptionMarginBottom.Value = dataModel.CaptionMarginBottom;
-            CaptionMarginLeft.Value = dataModel.CaptionMarginLeft;
-            FaceImageWidth.Value = dataModel.FaceImageWidth;
-            CaptionFontSize.Value = dataModel.CaptionFontSize;
-            NarrationVolume.Value = dataModel.NarrationVolume;
-            PagingIntervalMilliseconds.Value = dataModel.PagingIntervalMilliseconds;
-
-            ImageMouthAPath.Value.Path.Value = dataModel.ImageMouthAPath;
-            ImageMouthIPath.Value.Path.Value = dataModel.ImageMouthIPath;
-            ImageMouthUPath.Value.Path.Value = dataModel.ImageMouthUPath;
-            ImageMouthEPath.Value.Path.Value = dataModel.ImageMouthEPath;
-            ImageMouthOPath.Value.Path.Value = dataModel.ImageMouthOPath;
-            ImageMouthNPath.Value.Path.Value = dataModel.ImageMouthNPath;
-            ImageEyeOpenPath.Value.Path.Value = dataModel.ImageEyeOpenPath;
-            ImageEyeClosePath.Value.Path.Value = dataModel.ImageEyeClosePath;
-            ImageFaceBasePath.Value.Path.Value = dataModel.ImageFaceBasePath;
-            ImageBodyPath.Value.Path.Value = dataModel.ImageBodyPath;
-            DefaultPageTurningAudioPath.Value.Path.Value = dataModel.DefaultPageTurningAudioPath;
+            DeepCopyFrom(dataModel);
         }
 
         public ILogger Logger => _logger;
@@ -509,6 +469,57 @@ namespace PresentationMovieMaker.ViewModels
                 var pageInfo = PageInfos[i];
                 pageInfo.PageNumber.Value = i + 1;
             }
+        }
+
+        public void ResetToDefault()
+        {
+            DeepCopyFrom(new MovieSetting());
+        }
+
+        public void DeepCopyFrom(MovieSetting dataModel)
+        {
+            if (dataModel.PageInfos is not null)
+            {
+                PageInfos.Clear();
+                for (int i = 0; i < dataModel.PageInfos.Count; ++i)
+                {
+                    var info = dataModel.PageInfos[i];
+                    PageInfos.Add(new PageInfoViewModel(info, i + 1, this));
+                }
+            }
+
+            ImageRoot.Value = dataModel.ImageRoot;
+            AudioRoot.Value = dataModel.AudioRoot;
+            if (SoundUtility.IsValidVoiceName(dataModel.VoiceName))
+            {
+                VoiceName.Value = dataModel.VoiceName;
+            }
+
+            BgmPath.Value = dataModel.BgmPath;
+            BgmVolume.Value = dataModel.BgmVolume;
+            ShowPageNumber.Value = dataModel.ShowPageNumber;
+            PageNumberPosX.Value = dataModel.PageNumberPosX;
+            PageNumberPosY.Value = dataModel.PageNumberPosY;
+            PageNumberFontSize.Value = dataModel.PageNumberFontSize;
+            BgmFadeOutMilliseconds.Value = dataModel.BgmFadeOutMilliseconds;
+            CaptionMarginBottom.Value = dataModel.CaptionMarginBottom;
+            CaptionMarginLeft.Value = dataModel.CaptionMarginLeft;
+            FaceImageWidth.Value = dataModel.FaceImageWidth;
+            CaptionFontSize.Value = dataModel.CaptionFontSize;
+            NarrationVolume.Value = dataModel.NarrationVolume;
+            PagingIntervalMilliseconds.Value = dataModel.PagingIntervalMilliseconds;
+
+            ImageMouthAPath.Value.Path.Value = dataModel.ImageMouthAPath;
+            ImageMouthIPath.Value.Path.Value = dataModel.ImageMouthIPath;
+            ImageMouthUPath.Value.Path.Value = dataModel.ImageMouthUPath;
+            ImageMouthEPath.Value.Path.Value = dataModel.ImageMouthEPath;
+            ImageMouthOPath.Value.Path.Value = dataModel.ImageMouthOPath;
+            ImageMouthNPath.Value.Path.Value = dataModel.ImageMouthNPath;
+            ImageEyeOpenPath.Value.Path.Value = dataModel.ImageEyeOpenPath;
+            ImageEyeClosePath.Value.Path.Value = dataModel.ImageEyeClosePath;
+            ImageFaceBasePath.Value.Path.Value = dataModel.ImageFaceBasePath;
+            ImageBodyPath.Value.Path.Value = dataModel.ImageBodyPath;
+            DefaultPageTurningAudioPath.Value.Path.Value = dataModel.DefaultPageTurningAudioPath;
         }
 
         public MovieSetting ToSerializable()

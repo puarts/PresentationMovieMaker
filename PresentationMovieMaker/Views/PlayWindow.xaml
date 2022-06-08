@@ -79,13 +79,13 @@
             <Image
                 Canvas.Right="20"
                 Canvas.Bottom="0"
-                Width="{Binding MovieSetting.Value.FaceImageWidth.Value}"
+                Width="{Binding MovieSetting.FaceImageWidth.Value}"
                 Opacity="{Binding FaceOpacity.Value}"
                 Source="{Binding BodyBitmap.Value}" />
             <Image
                 Canvas.Right="20"
                 Canvas.Bottom="0"
-                Width="{Binding MovieSetting.Value.FaceImageWidth.Value}"
+                Width="{Binding MovieSetting.FaceImageWidth.Value}"
                 Opacity="{Binding FaceOpacity.Value}"
                 Source="{Binding FaceBitmap.Value}">
                 <Image.RenderTransform>
@@ -95,7 +95,7 @@
             <Image
                 Canvas.Right="20"
                 Canvas.Bottom="0"
-                Width="{Binding MovieSetting.Value.FaceImageWidth.Value}"
+                Width="{Binding MovieSetting.FaceImageWidth.Value}"
                 Opacity="{Binding FaceOpacity.Value}"
                 Source="{Binding EyeBitmap.Value}">
                 <Image.RenderTransform>
@@ -105,7 +105,7 @@
             <Image
                 Canvas.Right="20"
                 Canvas.Bottom="0"
-                Width="{Binding MovieSetting.Value.FaceImageWidth.Value}"
+                Width="{Binding MovieSetting.FaceImageWidth.Value}"
                 Opacity="{Binding FaceOpacity.Value}"
                 Source="{Binding MouthBitmap.Value}">
                 <Image.RenderTransform>
@@ -116,7 +116,7 @@
             <TextBlock
                 Canvas.Left="{Binding ActualPageNumberPosX.Value}"
                 Canvas.Top="{Binding ActualPageNumberPosY.Value}"
-                FontSize="{Binding MovieSetting.Value.PageNumberFontSize.Value}"
+                FontSize="{Binding MovieSetting.PageNumberFontSize.Value}"
                 Foreground="White"
                 Text="{Binding CurrentPageNumber.Value}"
                 Visibility="{Binding ActualPageNumberVisibility.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}" />
@@ -131,7 +131,7 @@
                     <!--  無理やりブラーで縁取り  -->
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="Black"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"
@@ -142,7 +142,7 @@
                     </TextBlock>
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="Black"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"
@@ -153,7 +153,7 @@
                     </TextBlock>
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="Black"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"
@@ -164,7 +164,7 @@
                     </TextBlock>
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="Black"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"
@@ -175,7 +175,7 @@
                     </TextBlock>
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="Black"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"
@@ -186,7 +186,7 @@
                     </TextBlock>
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="Black"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"
@@ -197,7 +197,7 @@
                     </TextBlock>
                     <TextBlock
                         Margin="10"
-                        FontSize="{Binding MovieSetting.Value.CaptionFontSize.Value}"
+                        FontSize="{Binding MovieSetting.CaptionFontSize.Value}"
                         Foreground="{Binding CurrentForegroundColor.Value, Converter={x:Static local:ColorToBrushConverter.Instance}}"
                         Text="{Binding CurrentText.Value}"
                         TextAlignment="Center"

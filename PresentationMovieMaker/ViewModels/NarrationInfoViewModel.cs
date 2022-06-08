@@ -428,7 +428,7 @@ namespace PresentationMovieMaker.ViewModels
 
         private double GetSpeechVolume()
         {
-            return SpeechVolume.Value * (Parent.Parent.Parent?.MovieSetting.Value.NarrationVolume.Value ?? 1.0);
+            return SpeechVolume.Value * (Parent.Parent.Parent?.MovieSetting.NarrationVolume.Value ?? 1.0);
         }
 
         public void StartSpeech(string text, CancellationToken? ct = null, int intervalMilliseconds = 100, Action? waitCallback = null)

@@ -24,6 +24,7 @@ using System.Resources;
 using Microsoft.CognitiveServices.Speech;
 using System.Speech.Recognition;
 using System.Drawing;
+using System.Reactive.Linq;
 
 namespace PresentationMovieMaker.ViewModels
 {
@@ -62,7 +63,10 @@ namespace PresentationMovieMaker.ViewModels
             Settings.Add(FaceRotateCenterY);
             Settings.Add(FaceRotateSpeed);
 
-            MovieSetting.Value = new MovieSettingViewModel(this);
+            MovieSetting = new MovieSettingViewModel(this)
+            {
+                Parent = this
+            };
 
             //SoundUtility.GetSynthesizer().PhonemeReached += (object? sender, System.Speech.Synthesis.PhonemeReachedEventArgs e) =>
             //{
@@ -92,7 +96,7 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     // 最初のページの画像サイズでウインドウサイズを設定
                     {
-                        var firstPage = MovieSetting.Value.PageInfos.FirstOrDefault();
+                        var firstPage = MovieSetting.PageInfos.FirstOrDefault();
                         if (firstPage is not null)
                         {
                             var path = firstPage.ImagePath.Value.ActualPath.Value;
@@ -128,7 +132,7 @@ namespace PresentationMovieMaker.ViewModels
                     CancellationToken ct = _cancellationTokenSource.Token;
                     _playTask = Task.Run(() =>
                     {
-                        ActualPageNumberVisibility.Value = MovieSetting.Value.ShowPageNumber.Value;
+                        ActualPageNumberVisibility.Value = MovieSetting.ShowPageNumber.Value;
                         try
                         {
                             PlaySlideshow(ct);
@@ -212,7 +216,7 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(CreateNewSettingCommand, () =>
             {
-                MovieSetting.Value = new MovieSettingViewModel(this);
+                MovieSetting.ResetToDefault();
             });
 
             OpenSettingCommand.Subscribe(() =>
@@ -305,8 +309,8 @@ namespace PresentationMovieMaker.ViewModels
                         }
                     }
 
-                    var copiedPages = MovieSetting.Value.PageInfos.Select(x => x.ToSerializable()).ToDictionary(x => Path.GetFileNameWithoutExtension(x.ImagePath));
-                    foreach (var pageInfo in MovieSetting.Value.PageInfos)
+                    var copiedPages = MovieSetting.PageInfos.Select(x => x.ToSerializable()).ToDictionary(x => Path.GetFileNameWithoutExtension(x.ImagePath));
+                    foreach (var pageInfo in MovieSetting.PageInfos)
                     {
                         var name = Path.GetFileNameWithoutExtension(pageInfo.ImagePath.Value.Path.Value);
                         if (!relocationMap.ContainsKey(name))
@@ -352,11 +356,15 @@ namespace PresentationMovieMaker.ViewModels
                 }
             });
 
-
-            Subscribe(MovieSetting, value =>
+            
+            Subscribe(MovieSetting.PageNumberPosX
+                .CombineLatest(MovieSetting.PageNumberPosY), _ =>
             {
-                value.Parent = this;
                 UpdatePageNumberPositions();
+            });
+            Subscribe(MovieSetting.CaptionMarginBottom
+                .CombineLatest(MovieSetting.CaptionMarginLeft), _ =>
+            {
                 SyncCaptionMargin();
             });
 
@@ -386,7 +394,7 @@ namespace PresentationMovieMaker.ViewModels
 
         private IEnumerable<string> EnumerateSlideImagePaths()
         {
-            return MovieSetting.Value.PageInfos.Select(pageInfo =>
+            return MovieSetting.PageInfos.Select(pageInfo =>
             {
                 if (pageInfo.ImagePath.Value.IsEmpty())
                 {
@@ -441,8 +449,8 @@ namespace PresentationMovieMaker.ViewModels
 
         public void SyncCaptionMargin()
         {
-            this.CaptionMarginBottom.Value = MovieSetting.Value.CaptionMarginBottom.Value;
-            this.CaptionMarginLeft.Value = MovieSetting.Value.CaptionMarginLeft.Value;
+            this.CaptionMarginBottom.Value = MovieSetting.CaptionMarginBottom.Value;
+            this.CaptionMarginLeft.Value = MovieSetting.CaptionMarginLeft.Value;
         }
 
         public void CancelPlaying()
@@ -499,7 +507,7 @@ namespace PresentationMovieMaker.ViewModels
 
             CurrentPageNumber.Value = 1;
             {
-                var pageInfo = MovieSetting.Value.PageInfos[_pageIndex];
+                var pageInfo = MovieSetting.PageInfos[_pageIndex];
                 if (pageInfo != null && IsImageFile(pageInfo.ImagePath.Value.ActualPath.Value))
                 {
                     var currentBufferIndex = _pageIndex % 2;
@@ -532,7 +540,7 @@ namespace PresentationMovieMaker.ViewModels
             }
 
             // BGM の開始
-            StartBgm(MovieSetting.Value.BgmPath.Value, (float)MovieSetting.Value.BgmVolume.Value);
+            StartBgm(MovieSetting.BgmPath.Value, (float)MovieSetting.BgmVolume.Value);
 
             Task.Run(() =>
             {
@@ -547,15 +555,15 @@ namespace PresentationMovieMaker.ViewModels
 
             Thread.Sleep(500);
 
-            var pageCount = MovieSetting.Value.PageInfos.Count;
+            var pageCount = MovieSetting.PageInfos.Count;
             for (; _pageIndex < pageCount; ++_pageIndex)
             {
                 WaitResume();
                 CurrentPageNumber.Value = _pageIndex + 1;
                 var currentBufferIndex = _pageIndex % 2;
                 var nextBufferIndex = currentBufferIndex == 0 ? 1 : 0;
-                var pageInfo = MovieSetting.Value.PageInfos[_pageIndex];
-                var nextPageInfo = _pageIndex + 1 < pageCount ? MovieSetting.Value.PageInfos[_pageIndex + 1] : null;
+                var pageInfo = MovieSetting.PageInfos[_pageIndex];
+                var nextPageInfo = _pageIndex + 1 < pageCount ? MovieSetting.PageInfos[_pageIndex + 1] : null;
 
                 using (_goToNexPageCancellationTokenSource = new CancellationTokenSource())
                 using (_goBackToPreviousPageCancellationTokenSource = new CancellationTokenSource())
@@ -571,7 +579,7 @@ namespace PresentationMovieMaker.ViewModels
                             if (pageInfo.BgmPath is not null && !(pageInfo.BgmPath.Value.IsEmpty()))
                             {
                                 FadeOutCurrentBgm(pageInfo.BgmFadeMiliseconds.Value);
-                                float volume = pageInfo.OverwritesBgmVolume.Value ? (float)pageInfo.BgmVolume.Value : (float)MovieSetting.Value.BgmVolume.Value;
+                                float volume = pageInfo.OverwritesBgmVolume.Value ? (float)pageInfo.BgmVolume.Value : (float)MovieSetting.BgmVolume.Value;
                                 StartBgm(pageInfo.BgmPath.Value.ActualPath.Value, volume, true, pageInfo.BgmFadeMiliseconds.Value);
                             }
                             else if (pageInfo.OverwritesBgmVolume.Value && _bgmFileReader is not null)
@@ -687,10 +695,10 @@ namespace PresentationMovieMaker.ViewModels
                                 if (_pageIndex != 0
                                 && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0))
                                 {
-                                    var audioPath = MovieSetting.Value.DefaultPageTurningAudioPath.Value;
+                                    var audioPath = MovieSetting.DefaultPageTurningAudioPath.Value;
                                     if (!audioPath.IsEmpty())
                                     {
-                                        PlayNarrationAudio(audioPath, 1.0f, linkedCt);
+                                        Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
                                     }
                                 }
 
@@ -799,7 +807,7 @@ namespace PresentationMovieMaker.ViewModels
             // BGM のフェードアウト
             var task = Task.Run(() =>
             {
-                FadeOutCurrentBgm(MovieSetting.Value.BgmFadeOutMilliseconds.Value);
+                FadeOutCurrentBgm(MovieSetting.BgmFadeOutMilliseconds.Value);
             });
 
             // 終了後の余白
@@ -836,7 +844,7 @@ namespace PresentationMovieMaker.ViewModels
         {
             if (File.Exists(bgmPath))
             {
-                WriteLogLine($"BGMをボリューム{MovieSetting.Value.BgmVolume.Value}で再生します。\"{bgmPath}\"");
+                WriteLogLine($"BGMをボリューム{MovieSetting.BgmVolume.Value}で再生します。\"{bgmPath}\"");
                 var reader = new AudioFileReader(bgmPath);
                 _bgmFileReader = reader;
                 _bgmFileReader.Volume = 0.0f;
@@ -901,7 +909,7 @@ namespace PresentationMovieMaker.ViewModels
 
         public void SyncBgmVolumeFromSetting()
         {
-            _bgmOutputDevice.Volume = (float)MovieSetting.Value.BgmVolume.Value;
+            _bgmOutputDevice.Volume = (float)MovieSetting.BgmVolume.Value;
         }
 
         private void WaitResume()
@@ -938,7 +946,7 @@ namespace PresentationMovieMaker.ViewModels
                     IsCaptionVisible.Value = true;
                     CurrentText.Value = inputText;
                     var speechText = inputText.Replace(Environment.NewLine, "");
-                    info.StartSpeech(speechText, linkedCt, MovieSetting.Value.NarrationLineBreakInterval.Value, () =>
+                    info.StartSpeech(speechText, linkedCt, MovieSetting.NarrationLineBreakInterval.Value, () =>
                     {
                         BlinkEyeRandom();
                     });
@@ -1085,12 +1093,12 @@ namespace PresentationMovieMaker.ViewModels
 
         public void UpdatePageNumberPosX()
         {
-            ActualPageNumberPosX.Value = MovieSetting.Value.PageNumberPosX.Value * PlayWindowWidth.Value;
+            ActualPageNumberPosX.Value = MovieSetting.PageNumberPosX.Value * PlayWindowWidth.Value;
         }
 
         public void UpdatePageNumberPosY()
         {
-            ActualPageNumberPosY.Value = MovieSetting.Value.PageNumberPosY.Value * PlayWindowWidth.Value;
+            ActualPageNumberPosY.Value = MovieSetting.PageNumberPosY.Value * PlayWindowWidth.Value;
         }
         public ReactiveProperty<BitmapSource> BodyBitmap { get; } = new ReactiveProperty<BitmapSource>();
         public ReactiveProperty<BitmapSource> FaceBitmap { get; } = new ReactiveProperty<BitmapSource>();
@@ -1175,11 +1183,15 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<string> SettingPath { get; } = new ReactiveProperty<string>();
 
-        public ReactiveProperty<MovieSettingViewModel> MovieSetting { get; } = new ReactiveProperty<MovieSettingViewModel>();
+        public MovieSettingViewModel MovieSetting { get; }
 
         public PathPropertyViewModel BouyomiChanPath { get; } = new PathPropertyViewModel("棒読みちゃんパス");
         public PathPropertyViewModel BouyomiChanRemoteTalkPath { get; } = new PathPropertyViewModel("RemoteTalkパス");
         public StringPropertyViewModel ApplausePath { get; } = new StringPropertyViewModel("歓声パス(.wav)");
+
+        public ReactiveProperty<double> ActualFaceWidth { get; } = new ReactiveProperty<double>();
+
+        public ReactiveProperty<double> WindowScale { get; } = new ReactiveProperty<double>();
 
         public ObservableCollection<IPropertyViewModel> Settings { get; } = new ObservableCollection<IPropertyViewModel>();
 
@@ -1211,7 +1223,7 @@ namespace PresentationMovieMaker.ViewModels
 
         private void SaveSettings(string path)
         {
-            SaveSettings(MovieSetting.Value.ToSerializable(), path);
+            SaveSettings(MovieSetting.ToSerializable(), path);
         }
 
         private string GetApplicationSettingPath()
@@ -1281,7 +1293,7 @@ namespace PresentationMovieMaker.ViewModels
                 return;
             }
 
-            MovieSetting.Value = new MovieSettingViewModel(deserialized, this);
+            MovieSetting.DeepCopyFrom(deserialized);
             SetupFace();
         }
 
@@ -1297,17 +1309,17 @@ namespace PresentationMovieMaker.ViewModels
             _eyeBitmaps[EyePattern.Open] = null;
             _eyeBitmaps[EyePattern.Close] = null;
 
-            UpdateBitmapSource(MovieSetting.Value.ImageMouthAPath.Value, x => _pronuunciationBitmaps['a'] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageMouthIPath.Value, x => _pronuunciationBitmaps['i'] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageMouthUPath.Value, x => _pronuunciationBitmaps['u'] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageMouthEPath.Value, x => _pronuunciationBitmaps['e'] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageMouthOPath.Value, x => _pronuunciationBitmaps['o'] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageMouthNPath.Value, x => _pronuunciationBitmaps['n'] = x);
+            UpdateBitmapSource(MovieSetting.ImageMouthAPath.Value, x => _pronuunciationBitmaps['a'] = x);
+            UpdateBitmapSource(MovieSetting.ImageMouthIPath.Value, x => _pronuunciationBitmaps['i'] = x);
+            UpdateBitmapSource(MovieSetting.ImageMouthUPath.Value, x => _pronuunciationBitmaps['u'] = x);
+            UpdateBitmapSource(MovieSetting.ImageMouthEPath.Value, x => _pronuunciationBitmaps['e'] = x);
+            UpdateBitmapSource(MovieSetting.ImageMouthOPath.Value, x => _pronuunciationBitmaps['o'] = x);
+            UpdateBitmapSource(MovieSetting.ImageMouthNPath.Value, x => _pronuunciationBitmaps['n'] = x);
 
-            UpdateBitmapSource(MovieSetting.Value.ImageEyeOpenPath.Value, x => _eyeBitmaps[EyePattern.Open] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageEyeClosePath.Value, x => _eyeBitmaps[EyePattern.Close] = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageBodyPath.Value, x => BodyBitmap.Value = x);
-            UpdateBitmapSource(MovieSetting.Value.ImageFaceBasePath.Value, x => FaceBitmap.Value = x);
+            UpdateBitmapSource(MovieSetting.ImageEyeOpenPath.Value, x => _eyeBitmaps[EyePattern.Open] = x);
+            UpdateBitmapSource(MovieSetting.ImageEyeClosePath.Value, x => _eyeBitmaps[EyePattern.Close] = x);
+            UpdateBitmapSource(MovieSetting.ImageBodyPath.Value, x => BodyBitmap.Value = x);
+            UpdateBitmapSource(MovieSetting.ImageFaceBasePath.Value, x => FaceBitmap.Value = x);
 
             FaceRotateCenterX.Value = 120;
             FaceRotateCenterY.Value = 120;
