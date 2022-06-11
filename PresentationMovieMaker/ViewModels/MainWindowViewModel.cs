@@ -125,18 +125,23 @@ namespace PresentationMovieMaker.ViewModels
                 {
 
                     WriteLogLine("再生開始");
-                    CurrentTime.Stop();
                     CurrentTime.Start();
                     var timerCancellationTokenSource = new CancellationTokenSource();
                     var timerCancellationToken = timerCancellationTokenSource.Token;
+                    void UpdateTimerText()
+                    {
+                        CurrentTimeText.Value = CurrentTime.Elapsed.ToString(@"hh\:mm\:ss");
+                    }
                     var timerUpdateTask = Task.Run(() =>
                     {
                         while (!timerCancellationToken.IsCancellationRequested)
                         {
-                            CurrentTimeText.Value = CurrentTime.Elapsed.ToString(@"hh\:mm\:ss");
+                            UpdateTimerText();
                             Thread.Sleep(500);
                         }
-                        CurrentTimeText.Value = "00:00:00";
+                        CurrentTime.Stop();
+                        CurrentTime.Reset();
+                        UpdateTimerText();
                     }, timerCancellationToken);
 
                     CurrentAnimationTime.Value = 0.0;
@@ -182,9 +187,10 @@ namespace PresentationMovieMaker.ViewModels
                             CurrentText.Value = string.Empty;
                             IsCaptionVisible.Value = false;
                             StartPageIndex = 0;
-                            CurrentTime.Stop();
 
                             timerCancellationTokenSource.Cancel();
+                            timerUpdateTask.Wait();
+                            timerUpdateTask.Dispose();
                         }
                     }, ct);
                 }
@@ -337,7 +343,11 @@ namespace PresentationMovieMaker.ViewModels
                         WriteLogLine($"コピー {destName} => {name}");
                         var serial = copiedPages[destName] ?? throw new Exception();
                         var origPath = pageInfo.ImagePath.Value.Path.Value;
-                        pageInfo.DeepCopyFrom(serial);
+                        SingletonDispatcher.Invoke(() =>
+                        {
+                            // Collection 書き換えるのでUIスレッドで実行が必要
+                            pageInfo.DeepCopyFrom(serial);
+                        });
                         pageInfo.ImagePath.Value.Path.Value = origPath;
                     }
                 });

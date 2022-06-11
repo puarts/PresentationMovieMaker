@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PresentationMovieMaker.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
@@ -15,6 +16,7 @@ namespace PresentationMovieMaker
     {
         private void Application_Startup(object sender, StartupEventArgs e)
         {
+            SingletonDispatcher.Initialize();
         }
     }
 }
