@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Speech.Synthesis;
 using System.Text;
 using System.Threading;
@@ -83,6 +84,20 @@ namespace PresentationMovieMaker.ViewModels
                 }
             }).AddTo(Disposable);
 
+            Subscribe(AddSubImageCommand, () =>
+            {
+                SubImagePaths.Add(new PathViewModel());
+            });
+            Subscribe(RemoveSubImageCommand, () =>
+            {
+                if (SubImagePaths.Count == 0)
+                {
+                    return;
+                }
+
+                SubImagePaths.RemoveAt(SubImagePaths.Count - 1);
+            });
+
             Subscribe(AddNarrationInfoCommand, () =>
             {
                 AddNarrationInfos(new[] { new NarrationInfoViewModel(this) });
@@ -150,6 +165,13 @@ namespace PresentationMovieMaker.ViewModels
                 UpdateDuration();
                 UpdateCharCount();
             };
+            Subscribe(Title.CombineLatest(Description, PageType), value =>
+            {
+                if (Parent.SelectedPageInfo.Value == this)
+                {
+                    Parent.Parent?.SyncPageInfo(this);
+                }
+            });
         }
 
         public PageInfoViewModel(int pageNumber, MovieSettingViewModel parent)
@@ -174,6 +196,9 @@ namespace PresentationMovieMaker.ViewModels
             RotationAngle.Value = dataModel.RotationAngle;
             MediaVolume.Value = dataModel.MediaVolume;
             PagingIntervalMilliseconds.Value = dataModel.PagingIntervalMilliseconds;
+            Title.Value = dataModel.Title;
+            PageType.Value = dataModel.PageType;
+            Description.Value = dataModel.Description;
 
             NarrationInfos.Clear();
             if (dataModel.NarrationInfos.Any())
@@ -181,6 +206,15 @@ namespace PresentationMovieMaker.ViewModels
                 foreach (var info in dataModel.NarrationInfos)
                 {
                     NarrationInfos.Add(new NarrationInfoViewModel(info, this));
+                }
+            }
+
+            SubImagePaths.Clear();
+            if (dataModel.SubImagePaths.Any())
+            {
+                foreach (var path in dataModel.SubImagePaths)
+                {
+                    SubImagePaths.Add(new PathViewModel(path));
                 }
             }
         }
@@ -200,6 +234,12 @@ namespace PresentationMovieMaker.ViewModels
                 SetProperty(ref _isSelected, value);
             }
         }
+
+        public ReactiveProperty<PageType> PageType { get; } = new ReactiveProperty<PageType>();
+
+        public ReactiveProperty<string> Title { get; } = new ReactiveProperty<string>();
+        public ReactiveProperty<string> Description { get; } = new ReactiveProperty<string>();
+
         public ReactiveProperty<double> MediaVolume { get; } = new ReactiveProperty<double>(1.0);
 
         public ReactiveProperty<int> TotalCharCount { get; } = new ReactiveProperty<int>();
@@ -227,6 +267,7 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<double> RotationAngle { get; } = new ReactiveProperty<double>(0);
 
 
+        #region Commands
         public ReactiveCommand PlayAudioCommand { get; } = new ReactiveCommand();
         public ReactiveCommand AddNarrationInfoCommand { get; } = new ReactiveCommand();
 
@@ -235,8 +276,14 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveCommand MoveNarrationInfoUpCommand { get; } = new ReactiveCommand();
         public ReactiveCommand MoveNarrationInfoDownCommand { get; } = new ReactiveCommand();
 
+        public ReactiveCommand AddSubImageCommand { get; } = new ReactiveCommand();
+        public ReactiveCommand RemoveSubImageCommand { get; } = new ReactiveCommand();
+        #endregion
+
 
         public ObservableCollection<NarrationInfoViewModel> NarrationInfos { get; } = new ObservableCollection<NarrationInfoViewModel>();
+
+        public ObservableCollection<PathViewModel> SubImagePaths { get; } = new ObservableCollection<PathViewModel>();
 
 
         public PageInfo ToSerializable()
@@ -250,7 +297,11 @@ namespace PresentationMovieMaker.ViewModels
             serial.RotationAngle = RotationAngle.Value;
             serial.MediaVolume = MediaVolume.Value;
             serial.NarrationInfos.AddRange(NarrationInfos.Select(x => x.ToSerializable()));
+            serial.SubImagePaths.AddRange(SubImagePaths.Select(x => x.ActualPath.Value));
             serial.PagingIntervalMilliseconds = PagingIntervalMilliseconds.Value;
+            serial.Title = Title.Value;
+            serial.Description = Description.Value;
+            serial.PageType = PageType.Value;
             return serial;
         }
 

@@ -23,6 +23,7 @@ namespace PresentationMovieMaker.ViewModels
         {
             _logger = logger;
 
+            Properties.Add(SlideBackgroundImagePath);
             Properties.Add(ImageBodyPath);
             Properties.Add(ImageFaceBasePath);
             Properties.Add(ImageMouthAPath);
@@ -35,6 +36,7 @@ namespace PresentationMovieMaker.ViewModels
             Properties.Add(ImageEyeOpenPath);
             Properties.Add(DefaultPageTurningAudioPath);
             Properties.Add(DefaultPageTurningAudioVolume);
+            Properties.Add(CaptionBackgroundOpacity);
 
             PageInfos.CollectionChanged += (o, e) =>
             {
@@ -98,8 +100,8 @@ namespace PresentationMovieMaker.ViewModels
                     return;
                 }
 
-                Parent.StartPageIndex = PageInfos.IndexOf(selectedPage);
-                Parent.PlayCommand.Execute();
+                var startPageIndex = PageInfos.IndexOf(selectedPage);
+                Parent.PlaySlideshow(startPageIndex);
             });
 
             MoveNarrationsToPreviousCommand.Subscribe(() =>
@@ -150,7 +152,7 @@ namespace PresentationMovieMaker.ViewModels
 
             AddPageCommand.Subscribe(() =>
             {
-                AddPageInfos(new[] { new PageInfoViewModel(this) });
+                AddNewPage();
             }).AddTo(Disposable);
 
             RemovePageCommand.Subscribe(() =>
@@ -162,6 +164,15 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 ReassignPageNumber();
+            }).AddTo(Disposable);
+
+            DuplicatePageCommand.Subscribe(() =>
+            {
+                foreach (var pageInfo in PageInfos.Where(x => x.IsSelected).ToArray())
+                {
+                    var newPage = AddNewPage();
+                    newPage.DeepCopyFrom(pageInfo.ToSerializable());
+                }
             }).AddTo(Disposable);
 
             var separator = "__page_info_separator__";
@@ -369,12 +380,17 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<PathViewModel> ImageBodyPath { get; set; } = new PathPropertyViewModel(nameof(ImageBodyPath));
         public ReactiveProperty<PathViewModel> ImageFaceBasePath { get; set; } = new PathPropertyViewModel(nameof(ImageFaceBasePath));
 
+        public ReactiveProperty<PathViewModel> SlideBackgroundImagePath { get; set; } = new PathPropertyViewModel(nameof(SlideBackgroundImagePath));
+
         public ReactiveProperty<PathViewModel> DefaultPageTurningAudioPath { get; set; } = new PathPropertyViewModel(nameof(DefaultPageTurningAudioPath));
 
         public DoublePropertyViewModel DefaultPageTurningAudioVolume { get; set; } = new DoublePropertyViewModel(nameof(DefaultPageTurningAudioVolume));
 
+        public DoublePropertyViewModel CaptionBackgroundOpacity { get; set; } = new DoublePropertyViewModel("キャプション背景不透明度");
 
-        
+
+
+
 
 
         public ReactiveProperty<int> TotalCharCount { get; } = new ReactiveProperty<int>();
@@ -401,6 +417,8 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveCommand RemovePageCommand { get; } = new ReactiveCommand();
         public ReactiveCommand CopyPageCommand { get; } = new ReactiveCommand();
         public ReactiveCommand PastePageCommand { get; } = new ReactiveCommand();
+        public ReactiveCommand DuplicatePageCommand { get; } = new ReactiveCommand();
+        
         public ReactiveCommand MovePageUpCommand { get; } = new ReactiveCommand();
         public ReactiveCommand MovePageDownCommand { get; } = new ReactiveCommand();
         public ReactiveCommand MoveNarrationsToPreviousCommand { get; } = new ReactiveCommand();
@@ -408,6 +426,7 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveCommand BrowseBgmFileCommand { get; } = new ReactiveCommand();
 
         public ReactiveCommand<SelectionChangedEventArgs> SelectionChangedCommand { get; } = new ReactiveCommand<SelectionChangedEventArgs>();
+
 
         public void MovePageInfo(int elemIndex, int destinationIndex)
         {
@@ -519,7 +538,9 @@ namespace PresentationMovieMaker.ViewModels
             ImageEyeClosePath.Value.Path.Value = dataModel.ImageEyeClosePath;
             ImageFaceBasePath.Value.Path.Value = dataModel.ImageFaceBasePath;
             ImageBodyPath.Value.Path.Value = dataModel.ImageBodyPath;
+            SlideBackgroundImagePath.Value.Path.Value = dataModel.SlideBackgroundImagePath;
             DefaultPageTurningAudioPath.Value.Path.Value = dataModel.DefaultPageTurningAudioPath;
+            CaptionBackgroundOpacity.Value = dataModel.CaptionBackgroundOpacity;
         }
 
         public MovieSetting ToSerializable()
@@ -554,8 +575,10 @@ namespace PresentationMovieMaker.ViewModels
             serial.ImageEyeOpenPath = ImageEyeOpenPath.Value.ActualPath.Value;
             serial.ImageEyeClosePath = ImageEyeClosePath.Value.ActualPath.Value;
             serial.ImageFaceBasePath = ImageFaceBasePath.Value.ActualPath.Value;
+            serial.SlideBackgroundImagePath = SlideBackgroundImagePath.Value.ActualPath.Value;
             serial.ImageBodyPath = ImageBodyPath.Value.ActualPath.Value;
             serial.DefaultPageTurningAudioPath = DefaultPageTurningAudioPath.Value.ActualPath.Value;
+            serial.CaptionBackgroundOpacity = CaptionBackgroundOpacity.Value;
             return serial;
         }
 
@@ -580,6 +603,13 @@ namespace PresentationMovieMaker.ViewModels
                 count += info.TotalCharCount.Value;
             }
             TotalCharCount.Value = count;
+        }
+
+        private PageInfoViewModel AddNewPage()
+        {
+            var newPage = new PageInfoViewModel(this);
+            AddPageInfos(new[] { newPage });
+            return newPage;
         }
     }
 }

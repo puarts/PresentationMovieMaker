@@ -1,0 +1,273 @@
+﻿<UserControl
+    x:Class="PresentationMovieMaker.Views.SlideView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:PresentationMovieMaker.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
+    Name="controlRoot"
+    d:DataContext="{d:DesignInstance vm:MainWindowViewModel}"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ResourceDictionary.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="faceImageStyle" TargetType="{x:Type Image}">
+                <Setter Property="Width">
+                    <Setter.Value>
+                        <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                            <MultiBinding.Bindings>
+                                <Binding Path="PlayWindowWidth.Value" />
+                                <Binding ElementName="controlRoot" Path="ActualWidth" />
+                                <Binding Path="MovieSetting.FaceImageWidth.Value" />
+                            </MultiBinding.Bindings>
+                        </MultiBinding>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="fontSizeStyle" TargetType="{x:Type TextBlock}">
+                <Setter Property="FontSize">
+                    <Setter.Value>
+                        <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                            <MultiBinding.Bindings>
+                                <Binding Path="PlayWindowWidth.Value" />
+                                <Binding ElementName="controlRoot" Path="ActualWidth" />
+                                <Binding Path="MovieSetting.FaceImageWidth.Value" />
+                            </MultiBinding.Bindings>
+                        </MultiBinding>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid x:Name="rootCanvas">
+        <!--  スライド背景  -->
+        <Image Source="{Binding SlideBackgroundImage.Value}" />
+
+        <!--  スライドメイン画像  -->
+        <Image
+            Opacity="{Binding MediaElement1.Opacity.Value}"
+            Source="{Binding MediaElement1.ImagePath.Value}"
+            Visibility="{Binding MediaElement1.Visiibility.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}" />
+        <Image
+            Opacity="{Binding MediaElement2.Opacity.Value}"
+            Source="{Binding MediaElement2.ImagePath.Value}"
+            Visibility="{Binding MediaElement2.Visiibility.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}" />
+        <!--<MediaElement
+            Name="mediaElement"
+            IsVisibleChanged="mediaElement_IsVisibleChanged"
+            LoadedBehavior="Manual"
+            MediaOpened="MediaElement_MediaOpened"
+            Opacity="{Binding MediaElement1.Opacity.Value}"
+            Source="{Binding MediaElement1.ImagePath.Value}"
+            Visibility="{Binding MediaElement1.Visiibility.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}">
+            <MediaElement.LayoutTransform>
+                <TransformGroup>
+                    <RotateTransform Angle="{Binding MediaElement1.RotationAngle.Value}" />
+                </TransformGroup>
+            </MediaElement.LayoutTransform>
+        </MediaElement>-->
+        <!--<MediaElement
+            Name="mediaElement2"
+            IsVisibleChanged="mediaElement_IsVisibleChanged"
+            LoadedBehavior="Manual"
+            MediaOpened="MediaElement_MediaOpened"
+            Opacity="{Binding MediaElement2.Opacity.Value}"
+            Source="{Binding MediaElement2.ImagePath.Value}"
+            Visibility="{Binding MediaElement2.Visiibility.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}">
+            <MediaElement.LayoutTransform>
+                <TransformGroup>
+                    <RotateTransform Angle="{Binding MediaElement2.RotationAngle.Value}" />
+                </TransformGroup>
+            </MediaElement.LayoutTransform>
+        </MediaElement>-->
+
+
+        <!--  スライドサブ画像  -->
+        <ItemsControl ItemsSource="{Binding SlideSubImages, Mode=OneWay}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="{Binding DataContext.SlideSubImageCount.Value, ElementName=controlRoot}" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderThickness="1">
+                        <Image Source="{Binding ActualPath.Value}">
+                            <Image.MaxHeight>
+                                <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                                    <MultiBinding.Bindings>
+                                        <Binding ElementName="controlRoot" Path="DataContext.PlayWindowWidth.Value" />
+                                        <Binding ElementName="controlRoot" Path="ActualWidth" />
+                                        <Binding ElementName="controlRoot" Path="DataContext.SlideSubImageMaxHeight.Value" />
+                                    </MultiBinding.Bindings>
+                                </MultiBinding>
+                            </Image.MaxHeight>
+                        </Image>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.Margin>
+                <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                    <MultiBinding.Bindings>
+                        <Binding Path="PlayWindowWidth.Value" />
+                        <Binding ElementName="controlRoot" Path="ActualWidth" />
+                        <Binding Path="SlideSubImageMargin.Value" />
+                    </MultiBinding.Bindings>
+                </MultiBinding>
+            </ItemsControl.Margin>
+        </ItemsControl>
+
+        <!--  タイトル  -->
+        <TextBlock
+            Margin="50,30,30,30"
+            HorizontalAlignment="{Binding CurrentPageTitleHorizontalAlignment.Value}"
+            VerticalAlignment="{Binding CurrentPageTitleVerticalAlignment.Value}"
+            local:Adorning.StrokeOpacity="{Binding BlackOpacity.Value, Converter={x:Static local:InverseOpacityConverter.Instance}}"
+            local:Adorning.StrokeThickness="3"
+            FontWeight="Bold"
+            Foreground="White"
+            Text="{Binding CurrentPageTitle.Value}"
+            TextAlignment="Center"
+            TextWrapping="Wrap">
+            <TextBlock.FontSize>
+                <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                    <MultiBinding.Bindings>
+                        <Binding Path="PlayWindowWidth.Value" />
+                        <Binding ElementName="controlRoot" Path="ActualWidth" />
+                        <Binding Path="TitleFontSize.Value" />
+                    </MultiBinding.Bindings>
+                </MultiBinding>
+            </TextBlock.FontSize>
+            <local:Adorning.Stroke>
+                <SolidColorBrush Color="CadetBlue" />
+            </local:Adorning.Stroke>
+        </TextBlock>
+
+        <!--  本文  -->
+        <TextBlock
+            Margin="50,150,10,10"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            local:Adorning.StrokeThickness="0"
+            FontWeight="Bold"
+            Foreground="White"
+            Text="{Binding CurrentPageDescription.Value}"
+            TextWrapping="Wrap">
+            <TextBlock.FontSize>
+                <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                    <MultiBinding.Bindings>
+                        <Binding Path="PlayWindowWidth.Value" />
+                        <Binding ElementName="controlRoot" Path="ActualWidth" />
+                        <Binding Path="DescriptionFontSize.Value" />
+                    </MultiBinding.Bindings>
+                </MultiBinding>
+            </TextBlock.FontSize>
+            <local:Adorning.Stroke>
+                <SolidColorBrush Opacity="{Binding BlackOpacity.Value, Converter={x:Static local:InverseOpacityConverter.Instance}}" Color="CadetBlue" />
+            </local:Adorning.Stroke>
+
+        </TextBlock>
+
+        <Canvas Name="mainCanvas">
+            <!--  キャラ画像  -->
+            <Image
+                Canvas.Right="20"
+                Canvas.Bottom="0"
+                Opacity="{Binding FaceOpacity.Value}"
+                Source="{Binding BodyBitmap.Value}"
+                Style="{StaticResource faceImageStyle}" />
+            <Image
+                Canvas.Right="20"
+                Canvas.Bottom="0"
+                Opacity="{Binding FaceOpacity.Value}"
+                Source="{Binding FaceBitmap.Value}"
+                Style="{StaticResource faceImageStyle}">
+                <Image.RenderTransform>
+                    <RotateTransform Angle="{Binding FaceRotation.Value}" CenterX="{Binding FaceRotateCenterX.Value}" CenterY="{Binding FaceRotateCenterY.Value}" />
+                </Image.RenderTransform>
+            </Image>
+            <Image
+                Canvas.Right="20"
+                Canvas.Bottom="0"
+                Opacity="{Binding FaceOpacity.Value}"
+                Source="{Binding EyeBitmap.Value}"
+                Style="{StaticResource faceImageStyle}">
+                <Image.RenderTransform>
+                    <RotateTransform Angle="{Binding FaceRotation.Value}" CenterX="{Binding FaceRotateCenterX.Value}" CenterY="{Binding FaceRotateCenterY.Value}" />
+                </Image.RenderTransform>
+            </Image>
+            <Image
+                Canvas.Right="20"
+                Canvas.Bottom="0"
+                Opacity="{Binding FaceOpacity.Value}"
+                Source="{Binding MouthBitmap.Value}"
+                Style="{StaticResource faceImageStyle}">
+                <Image.RenderTransform>
+                    <RotateTransform Angle="{Binding FaceRotation.Value}" CenterX="{Binding FaceRotateCenterX.Value}" CenterY="{Binding FaceRotateCenterY.Value}" />
+                </Image.RenderTransform>
+            </Image>
+
+            <!--  ページ番号  -->
+            <TextBlock
+                Canvas.Left="{Binding ActualPageNumberPosX.Value}"
+                Canvas.Top="{Binding ActualPageNumberPosY.Value}"
+                FontSize="{Binding MovieSetting.PageNumberFontSize.Value}"
+                Foreground="White"
+                Text="{Binding CurrentPageNumber.Value}"
+                Visibility="{Binding ActualPageNumberVisibility.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}" />
+
+
+            <!--  ナレーション  -->
+            <Border
+                Canvas.Left="{Binding CaptionMarginLeft.Value}"
+                Canvas.Bottom="{Binding CaptionMarginBottom.Value}"
+                Width="{Binding CaptionWidth.Value}"
+                HorizontalAlignment="Center"
+                Visibility="{Binding IsCaptionVisible.Value, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}">
+                <Grid HorizontalAlignment="Center">
+                    <Rectangle Fill="Black" Opacity="{Binding MovieSetting.CaptionBackgroundOpacity.Value}" />
+                    <TextBlock
+                        Margin="10"
+                        local:Adorning.Stroke="Black"
+                        local:Adorning.StrokeThickness="1"
+                        FontWeight="Bold"
+                        Foreground="White"
+                        Text="{Binding CurrentText.Value}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap">
+                        <TextBlock.FontSize>
+                            <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                                <MultiBinding.Bindings>
+                                    <Binding Path="PlayWindowWidth.Value" />
+                                    <Binding ElementName="controlRoot" Path="ActualWidth" />
+                                    <Binding Path="MovieSetting.CaptionFontSize.Value" />
+                                </MultiBinding.Bindings>
+                            </MultiBinding>
+                        </TextBlock.FontSize>
+                    </TextBlock>
+
+                </Grid>
+            </Border>
+
+            <!--  現在時間  -->
+            <TextBlock
+                Foreground="LightGray"
+                Text="{Binding CurrentTimeText.Value}"
+                Visibility="{Binding ShowTimeCode.Value, Mode=OneWay, Converter={x:Static local:BoolToVisibieilityConverter.Instance}}" />
+        </Canvas>
+        <!--  暗転  -->
+        <Rectangle
+            Width="{Binding ElementName=mainCanvas, Path=ActualWidth}"
+            Height="{Binding ElementName=mainCanvas, Path=ActualHeight}"
+            Fill="Black"
+            Opacity="{Binding BlackOpacity.Value}" />
+    </Grid>
+</UserControl>

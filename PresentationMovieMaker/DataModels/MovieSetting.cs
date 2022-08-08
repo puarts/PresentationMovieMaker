@@ -39,6 +39,8 @@ namespace PresentationMovieMaker.DataModels
         public string DefaultPageTurningAudioPath { get; set; } = string.Empty;
         public double DefaultPageTurningAudioVolume { get; set; } = 1.0;
 
+        public string SlideBackgroundImagePath { get; set; } = string.Empty;
+
         // キャラクター設定
         public string ImageMouthAPath { get; set; } = string.Empty;
         public string ImageMouthIPath { get; set; } = string.Empty;
@@ -50,5 +52,6 @@ namespace PresentationMovieMaker.DataModels
         public string ImageEyeClosePath { get; set; } = string.Empty;
         public string ImageBodyPath { get; set; } = string.Empty;
         public string ImageFaceBasePath { get; set; } = string.Empty;
+        public double CaptionBackgroundOpacity { get; set; } = 0.3;
     }
 }

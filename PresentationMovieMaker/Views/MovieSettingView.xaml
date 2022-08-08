@@ -66,10 +66,13 @@
                                         <MenuItem Command="{Binding PastePageCommand}" Header="ページ情報のみペースト" />
                                         <MenuItem Command="{Binding MoveNarrationsToPreviousCommand}" Header="選択中のページ情報をひとつ前にずらす" />
                                         <MenuItem Command="{Binding MoveNarrationsToNextCommand}" Header="選択中のページ情報をひとつ後ろにずらす" />
+                                        <MenuItem Command="{Binding RemovePageCommand}" Header="削除(Delete)" />
+                                        <MenuItem Command="{Binding DuplicatePageCommand}" Header="複製(Ctrl+D)" />
                                     </ContextMenu>
                                 </ListView.ContextMenu>
                                 <ListView.InputBindings>
                                     <KeyBinding Command="{Binding RemovePageCommand}" Gesture="Delete" />
+                                    <KeyBinding Command="{Binding DuplicatePageCommand}" Gesture="Ctrl+D" />
                                 </ListView.InputBindings>
                                 <ListView.View>
                                     <GridView>

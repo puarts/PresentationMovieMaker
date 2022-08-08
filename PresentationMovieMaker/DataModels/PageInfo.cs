@@ -7,6 +7,13 @@ using System.Threading.Tasks;
 
 namespace PresentationMovieMaker.DataModels
 {
+    public enum PageType
+    {
+        Title,
+        SectionHeader,
+        TitleAndBody,
+    }
+
     public class PageInfo
     {
         public PageInfo()
@@ -38,5 +45,15 @@ namespace PresentationMovieMaker.DataModels
         public double RotationAngle { get; set; } = 0;
         public List<NarrationInfo> NarrationInfos { get; set; } = new List<NarrationInfo>();
         public int PagingIntervalMilliseconds { get; set; } = 300;
+
+
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+
+
+        public PageType PageType { get; set; } = PageType.TitleAndBody;
+
+        public List<string> SubImagePaths { get; set; } = new List<string>();
+
     }
 }

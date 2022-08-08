@@ -34,7 +34,7 @@ namespace PresentationMovieMaker.ViewModels
         Close
     }
 
-    public class MainWindowViewModel : CompositeDisposableBase, ILogger
+    public partial class MainWindowViewModel : CompositeDisposableBase, ILogger
     {
         private AudioFileReader? _bgmFileReader = null;
         private WaveOutEvent _bgmOutputDevice = new WaveOutEvent();
@@ -95,20 +95,8 @@ namespace PresentationMovieMaker.ViewModels
             {
                 View?.Dispatcher.Invoke(() =>
                 {
-                    // 最初のページの画像サイズでウインドウサイズを設定
-                    {
-                        var firstPage = MovieSetting.PageInfos.FirstOrDefault();
-                        if (firstPage is not null)
-                        {
-                            var path = firstPage.ImagePath.Value.ActualPath.Value;
-                            if (IsImageFile(path) && File.Exists(path))
-                            {
-                                var size = ImageUtility.GetImageSize(path);
-                                AspectRatio.Value = size.Width / (double)size.Height;
-                                PlayWindowWidth.Value = size.Width;
-                            }
-                        }
-                    }
+                    UpdatePlayWindowWidth();
+
                     PlayWindow = new Views.PlayWindow();
                     PlayWindow.Owner = View;
                     PlayWindow?.Show();
@@ -123,76 +111,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
                 else
                 {
-
-                    WriteLogLine("再生開始");
-                    CurrentTime.Start();
-                    var timerCancellationTokenSource = new CancellationTokenSource();
-                    var timerCancellationToken = timerCancellationTokenSource.Token;
-                    void UpdateTimerText()
-                    {
-                        CurrentTimeText.Value = CurrentTime.Elapsed.ToString(@"hh\:mm\:ss");
-                    }
-                    var timerUpdateTask = Task.Run(() =>
-                    {
-                        while (!timerCancellationToken.IsCancellationRequested)
-                        {
-                            UpdateTimerText();
-                            Thread.Sleep(500);
-                        }
-                        CurrentTime.Stop();
-                        CurrentTime.Reset();
-                        UpdateTimerText();
-                    }, timerCancellationToken);
-
-                    CurrentAnimationTime.Value = 0.0;
-                    IsPlaying.Value = true;
-                    _cancellationTokenSource = new CancellationTokenSource();
-                    CancellationToken ct = _cancellationTokenSource.Token;
-                    _playTask = Task.Run(() =>
-                    {
-                        ActualPageNumberVisibility.Value = MovieSetting.ShowPageNumber.Value;
-                        try
-                        {
-                            PlaySlideshow(ct);
-                        }
-                        catch (OperationCanceledException e)
-                        {
-                            WriteLogLine($"{nameof(OperationCanceledException)} thrown with message: {e.Message}");
-                        }
-                        finally
-                        {
-                            SoundUtility.CancelSpeakingAll();
-                            if (_bgmOutputDevice.PlaybackState != PlaybackState.Stopped)
-                            {
-                                _bgmOutputDevice.Stop();
-                            }
-
-                            if (_soundEffectOutputDevice.PlaybackState != PlaybackState.Stopped)
-                            {
-                                _soundEffectOutputDevice.Stop();
-                            }
-
-                            View?.Dispatcher.Invoke(() =>
-                            {
-                                //PlayWindow?.Hide();
-                                //PlayWindow?.Close();
-                            });
-
-                            _cancellationTokenSource.Dispose();
-                            _cancellationTokenSource = null;
-                            MediaElement1.ImagePath.Value = string.Empty;
-                            MediaElement2.ImagePath.Value = string.Empty;
-                            IsPlaying.Value = false;
-                            ActualPageNumberVisibility.Value = false;
-                            CurrentText.Value = string.Empty;
-                            IsCaptionVisible.Value = false;
-                            StartPageIndex = 0;
-
-                            timerCancellationTokenSource.Cancel();
-                            timerUpdateTask.Wait();
-                            timerUpdateTask.Dispose();
-                        }
-                    }, ct);
+                    PlaySlideshow();
                 }
 
             }).AddTo(Disposable);
@@ -381,7 +300,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
             });
 
-            
+
             Subscribe(MovieSetting.PageNumberPosX
                 .CombineLatest(MovieSetting.PageNumberPosY), _ =>
             {
@@ -391,6 +310,15 @@ namespace PresentationMovieMaker.ViewModels
                 .CombineLatest(MovieSetting.CaptionMarginLeft), _ =>
             {
                 SyncCaptionMargin();
+            });
+
+            Subscribe(MovieSetting.SlideBackgroundImagePath.Value.ActualPath, value =>
+            {
+                UpdateSlideBackground(value);
+            });
+            Subscribe(MovieSetting.FaceImageWidth, value =>
+            {
+                ActualFaceImageWidth.Value = value;
             });
 
             Subscribe(PlayWindowWidth, value =>
@@ -414,6 +342,79 @@ namespace PresentationMovieMaker.ViewModels
             Subscribe(BouyomiChanRemoteTalkPath.Value.ActualPath, value =>
             {
                 SoundUtility.BouyomiChanRemoteTalkExePath = value;
+            });
+            Subscribe(CurrentPage, x =>
+            {
+                SyncPageInfo(x);
+            });
+
+            Subscribe(MovieSetting.SlideBackgroundImagePath.Value.ActualPath
+                .CombineLatest(MovieSetting.PageInfos.CollectionChangedAsObservable().StartWith(new System.Collections.Specialized.NotifyCollectionChangedEventArgs(System.Collections.Specialized.NotifyCollectionChangedAction.Reset))), _ =>
+            {
+                UpdatePlayWindowWidth();
+            });
+
+            Subscribe(MovieSetting.SelectedPageInfo, x =>
+            {
+                SyncPageInfo(x);
+                BlackOpacity.Value = 0.0;
+            });
+
+            Subscribe(SlideSubImages.CollectionChangedAsObservable(), x =>
+            {
+                SlideSubImageCount.Value = SlideSubImages.Count;
+            });
+            Subscribe(PlayWindowHeight.CombineLatest(SlideSubImageMargin), value =>
+            {
+                SlideSubImageMaxHeight.Value = value.First - SlideSubImageMargin.Value * 2;
+            });
+        }
+        private void UpdatePlayWindowWidth()
+        {
+            var bgPath = MovieSetting.SlideBackgroundImagePath.Value.ActualPath.Value;
+            if (File.Exists(bgPath))
+            {
+                // スライド背景があればスライド背景からウインドウサイズ設定
+                var size = ImageUtility.GetImageSize(bgPath);
+                AspectRatio.Value = size.Width / (double)size.Height;
+                PlayWindowWidth.Value = size.Width;
+                UpdateHeight();
+            }
+            else
+            {
+                // スライド背景がなければ、最初のページの画像サイズでウインドウサイズを設定
+                var firstPage = MovieSetting.PageInfos.FirstOrDefault();
+                if (firstPage is not null)
+                {
+                    var path = firstPage.ImagePath.Value.ActualPath.Value;
+                    if (IsImageFile(path) && File.Exists(path))
+                    {
+                        var size = ImageUtility.GetImageSize(path);
+                        AspectRatio.Value = size.Width / (double)size.Height;
+                        PlayWindowWidth.Value = size.Width;
+                        UpdateHeight();
+                    }
+                }
+            }
+        }
+
+        internal void SyncPageInfo(PageInfoViewModel? page)
+        {
+            SetPageInfoByPageType(page?.PageType.Value ?? default);
+
+            CurrentPageTitle.Value = page?.Title.Value ?? string.Empty;
+            CurrentPageDescription.Value = page?.Description.Value ?? string.Empty;
+
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                SlideSubImages.Clear();
+                if (page is not null)
+                {
+                    foreach (var imagePath in page.SubImagePaths)
+                    {
+                        SlideSubImages.Add(imagePath);
+                    }
+                }
             });
         }
 
@@ -500,356 +501,6 @@ namespace PresentationMovieMaker.ViewModels
                 default:
                     return false;
             }
-        }
-
-        public int StartPageIndex { get; set; } = 0;
-
-        private void PlaySlideshow(CancellationToken ct)
-        {
-            ResetFace();
-
-            MediaElement1.Opacity.Value = 1.0;
-            MediaElement2.Opacity.Value = 1.0;
-            BlackOpacity.Value = 0.0;
-
-            var imagePaths = new ReactiveProperty<string>[]
-            {
-                MediaElement1.ImagePath,
-                MediaElement2.ImagePath,
-            };
-            var rotateAngles = new ReactiveProperty<double>[]
-            {
-                MediaElement1.RotationAngle,
-                MediaElement2.RotationAngle,
-            };
-            var bufferVisibilities = new ReactiveProperty<bool>[]
-            {
-                MediaElement1.Visiibility,
-                MediaElement2.Visiibility,
-            };
-
-            _pageIndex = StartPageIndex;
-
-            CurrentPageNumber.Value = 1;
-            {
-                var pageInfo = MovieSetting.PageInfos[_pageIndex];
-                if (pageInfo != null && IsImageFile(pageInfo.ImagePath.Value.ActualPath.Value))
-                {
-                    var currentBufferIndex = _pageIndex % 2;
-                    var nextBufferIndex = currentBufferIndex == 0 ? 1 : 0;
-                    if (imagePaths[currentBufferIndex].Value != pageInfo.ImagePath.Value.ActualPath.Value)
-                    {
-                        this.IsMediaLoaded = false;
-                        WriteLogLine($"Start load MediaElement: bufferIndex = {currentBufferIndex}");
-                        imagePaths[currentBufferIndex].Value = pageInfo.ImagePath.Value.ActualPath.Value;
-                        View?.Dispatcher.Invoke(() =>
-                        {
-                            // manualだとPauseしないとずっと読み込まれない
-                            PlayWindow?.PlayMediaElement(currentBufferIndex);
-                        });
-                        //while (!this.IsMediaLoaded)
-                        //{
-                        //    Thread.Sleep(30);
-                        //}
-                    }
-
-                    bufferVisibilities[1].Value = currentBufferIndex == 1;
-                    bufferVisibilities[0].Value = true;
-                    if (StartPageIndex == 0)
-                    {
-                        Thread.Sleep(5000);
-                    }
-
-
-                }
-            }
-
-            // BGM の開始
-            StartBgm(MovieSetting.BgmPath.Value, (float)MovieSetting.BgmVolume.Value);
-
-            Task.Run(() =>
-            {
-                while (IsPlaying.Value)
-                {
-                    var timeOffset = (int)((1000 / 30) * _randGenerator.NextDouble());
-                    Thread.Sleep(timeOffset);
-                    CurrentAnimationTime.Value += timeOffset;
-                    AnimateFaceRotation();
-                }
-            });
-
-            Thread.Sleep(500);
-
-            var pageCount = MovieSetting.PageInfos.Count;
-            for (; _pageIndex < pageCount; ++_pageIndex)
-            {
-                WaitResume();
-                CurrentPageNumber.Value = _pageIndex + 1;
-                var currentBufferIndex = _pageIndex % 2;
-                var nextBufferIndex = currentBufferIndex == 0 ? 1 : 0;
-                var pageInfo = MovieSetting.PageInfos[_pageIndex];
-                var nextPageInfo = _pageIndex + 1 < pageCount ? MovieSetting.PageInfos[_pageIndex + 1] : null;
-
-                using (_goToNexPageCancellationTokenSource = new CancellationTokenSource())
-                using (_goBackToPreviousPageCancellationTokenSource = new CancellationTokenSource())
-                {
-                    var goNextCt = _goToNexPageCancellationTokenSource.Token;
-                    var goBackCt = _goBackToPreviousPageCancellationTokenSource.Token;
-                    using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, goNextCt, goBackCt))
-                    {
-                        var linkedCt = linkedCts.Token;
-
-                        Task.Run(() =>
-                        {
-                            if (pageInfo.BgmPath is not null && !(pageInfo.BgmPath.Value.IsEmpty()))
-                            {
-                                FadeOutCurrentBgm(pageInfo.BgmFadeMiliseconds.Value);
-                                float volume = pageInfo.OverwritesBgmVolume.Value ? (float)pageInfo.BgmVolume.Value : (float)MovieSetting.BgmVolume.Value;
-                                StartBgm(pageInfo.BgmPath.Value.ActualPath.Value, volume, true, pageInfo.BgmFadeMiliseconds.Value);
-                            }
-                            else if (pageInfo.OverwritesBgmVolume.Value && _bgmFileReader is not null)
-                            {
-                                // 現在流れているBGMの音量を変更する
-                                if (pageInfo.BgmVolume.Value == 0.0f)
-                                {
-                                    _bgmOutputDevice.Stop();
-                                }
-                                else
-                                {
-                                    if (_bgmOutputDevice.PlaybackState != PlaybackState.Playing)
-                                    {
-                                        _bgmOutputDevice.Play();
-                                    }
-                                    _bgmFileReader.Volume = (float)pageInfo.BgmVolume.Value;
-                                }
-                            }
-                        }, linkedCt);
-
-
-                        _playPageTask = Task.Run(() =>
-                        {
-                            try
-                            {
-                                //while (!this.IsMediaLoaded)
-                                //{
-                                //    Thread.Sleep(30);
-                                //}
-
-                                if (MediaDucration.HasTimeSpan)
-                                {
-                                    // 動画の時はサイズが違って後ろが見えちゃうので、後ろのバッファも消す必要があるので仕方なく消す
-                                    bufferVisibilities[1].Value = currentBufferIndex == 1;
-                                    bufferVisibilities[0].Value = currentBufferIndex == 0;
-                                }
-                                else
-                                {
-                                    // 後ろのバッファを消さない事で、ガビガビしなくなる
-                                    bufferVisibilities[1].Value = currentBufferIndex == 1;
-                                    bufferVisibilities[0].Value = true;
-                                }
-                                //bufferVisibilities[nextBufferIndex].Value = false;
-                                //bufferVisibilities[currentBufferIndex].Value = true;
-
-                                //if (currentBufferIndex == 0)
-                                //{
-                                //bufferVisibilities[currentBufferIndex].Value = true;
-                                //bufferVisibilities[nextBufferIndex].Value = false;
-                                //}
-                                //else
-                                //{
-                                //}
-                                //Thread.Sleep(100);
-                                //PlayWindow?.ResetVisibleChangedFlag();
-                                //if (!bufferVisibilities[currentBufferIndex].Value)
-                                //{
-                                //    bufferVisibilities[currentBufferIndex].Value = true;
-                                //    PlayWindow?.WaitVisibleChanged();
-                                //}
-
-                                //PlayWindow?.ResetVisibleChangedFlag();
-                                //if (bufferVisibilities[nextBufferIndex].Value)
-                                //{
-                                //    bufferVisibilities[nextBufferIndex].Value = false;
-                                //    PlayWindow?.WaitVisibleChanged();
-                                //}
-
-                                if (nextPageInfo is not null)
-                                {
-                                    rotateAngles[nextBufferIndex].Value = nextPageInfo.RotationAngle.Value;
-                                    if (imagePaths[nextBufferIndex].Value != nextPageInfo.ImagePath.Value.ActualPath.Value)
-                                    {
-                                        WriteLogLine($"Start load MediaElement: bufferIndex = {nextBufferIndex}");
-                                        this.IsMediaLoaded = false;
-                                        imagePaths[nextBufferIndex].Value = nextPageInfo.ImagePath.Value.ActualPath.Value;
-                                        //while (!this.IsMediaLoaded) ;
-                                        View?.Dispatcher.Invoke(() =>
-                                        {
-                                            PlayWindow?.PlayMediaElement(nextBufferIndex);
-                                        });
-                                    }
-                                }
-
-                                // ロード後にちょっとスリープを入れないとガビガビしてしまう
-                                //Thread.Sleep(100);
-                                //bufferVisibilities[nextBufferIndex].Value = false;
-
-                                //Thread.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
-
-                                linkedCt.ThrowIfCancellationRequested();
-
-                                var stopwatch = new Stopwatch();
-                                stopwatch.Start();
-                                TimeSpan mediaDuration = new TimeSpan(0);
-                                if (MediaDucration.HasTimeSpan)
-                                {
-                                    mediaDuration = MediaDucration.TimeSpan;
-                                    View?.Dispatcher.Invoke(() =>
-                                    {
-                                        PlayWindow?.SetMediaVolume(pageInfo.MediaVolume.Value, currentBufferIndex);
-                                        PlayWindow?.PlayMediaElement(currentBufferIndex);
-                                    });
-                                }
-
-                                View?.Dispatcher.Invoke(() =>
-                                {
-                                    // 動画再生
-                                    PlayWindow?.PlayMediaElement(currentBufferIndex);
-                                });
-
-                                // ページ切り替え時の音が設定されていない場合は、デフォルトのSEを再生
-                                if (_pageIndex != 0
-                                && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0))
-                                {
-                                    var audioPath = MovieSetting.DefaultPageTurningAudioPath.Value;
-                                    if (!audioPath.IsEmpty())
-                                    {
-                                        Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
-                                    }
-                                }
-
-                                foreach (var info in pageInfo.NarrationInfos)
-                                {
-                                    void PlayAllNarrationAudio(NarrationInfoViewModel info)
-                                    {
-                                        if (info.AudioPaths.Count > 0)
-                                        {
-                                            foreach (var audioPath in info.AudioPaths)
-                                            {
-                                                PlayNarrationAudio(audioPath, (float)info.AudioVolume.Value, linkedCt);
-                                            }
-                                        }
-                                    }
-
-                                    this.CaptionMarginBottom.Value = info.CaptionMarginBottom.Value;
-
-                                    // とりあえず先にオーディオ再生
-                                    if (info.IsAudioParallel.Value)
-                                    {
-                                        Task.Run(() => PlayAllNarrationAudio(info), linkedCt);
-                                    }
-                                    else
-                                    {
-                                        PlayAllNarrationAudio(info);
-                                    }
-
-
-                                    // 合成音声再生
-                                    {
-                                        WaitResume();
-                                        ThreadUtility.Wait(info.PreBlankMilliseconds.Value, ct, 100, () =>
-                                        {
-                                            BlinkEyeRandom();
-                                        });
-
-                                        SpeechText(info, linkedCt);
-
-                                        ResetFace();
-                                        //ThreadUtility.Wait(info.PostBlankMilliseconds.Value, ct, 100, () =>
-                                        //{
-                                        //    BlinkEyeRandom();
-                                        //});
-                                    }
-                                }
-
-                                // 動画の場合は再生完了を待つ
-                                while (stopwatch.Elapsed < mediaDuration)
-                                {
-                                    Thread.Sleep(100);
-                                    linkedCt.ThrowIfCancellationRequested();
-                                }
-                                stopwatch.Stop();
-
-                                linkedCt.ThrowIfCancellationRequested();
-
-                                Thread.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
-                            }
-                            catch (Exception exception)
-                            {
-                                SoundUtility.CancelSpeakingAll();
-                                if (IsCancelException(exception))
-                                {
-                                    if (goBackCt.IsCancellationRequested)
-                                    {
-                                        if (_pageIndex > 0)
-                                        {
-                                            _pageIndex = _pageIndex - 2;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    throw;
-                                }
-                            }
-                            finally
-                            {
-                                _outputDevice?.Stop();
-                            }
-                        }, linkedCt);
-
-                        try
-                        {
-                            _playPageTask.Wait();
-                        }
-                        catch (Exception exception)
-                        {
-                            SoundUtility.CancelSpeakingAll();
-                            if (!IsCancelException(exception))
-                            {
-                                throw;
-                            }
-                        }
-                        _playPageTask = null;
-
-                        ct.ThrowIfCancellationRequested();
-                    }
-                }
-
-                _goToNexPageCancellationTokenSource = null;
-                _goBackToPreviousPageCancellationTokenSource = null;
-            }
-
-            // BGM のフェードアウト
-            var task = Task.Run(() =>
-            {
-                FadeOutCurrentBgm(MovieSetting.BgmFadeOutMilliseconds.Value);
-            });
-
-            // 終了後の余白
-            {
-                // フェードアウト
-                for (int i = 100; i >= 0; --i)
-                {
-                    double opacity = i / 100.0;
-                    BlackOpacity.Value = 1.0 - opacity;
-                    //MediaElement1.Opacity.Value = opacity;
-                    //MediaElement2.Opacity.Value = opacity;
-                    //FaceOpacity.Value = opacity;
-                    Thread.Sleep(30);
-                }
-            }
-
-            task.Wait();
         }
 
         private void PlayNarrationAudio(PathViewModel audioPath, float volume, CancellationToken linkedCt)
@@ -1042,7 +693,7 @@ namespace PresentationMovieMaker.ViewModels
             }
             else if (randValue > 80)
             {
-                BlinkEye(1000);
+                BlinkEye(800);
             }
         }
 
@@ -1146,7 +797,7 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<double> CaptionMarginBottom { get; } = new ReactiveProperty<double>(60);
 
         public ReactiveProperty<double> CaptionWidth { get; } = new ReactiveProperty<double>();
-        public ReactiveProperty<string> CurrentText { get; } = new ReactiveProperty<string>();
+        public ReactiveProperty<string> CurrentText { get; } = new ReactiveProperty<string>(string.Empty);
 
         public ReactiveProperty<System.Windows.Media.Color> CurrentForegroundColor { get; } = new ReactiveProperty<System.Windows.Media.Color>();
 
@@ -1164,6 +815,12 @@ namespace PresentationMovieMaker.ViewModels
         public bool IsMediaLoaded { get; set; } = false;
 
         public ReactiveProperty<string> Title { get; } = new ReactiveProperty<string>("解説動画メーカー");
+
+        public ReactiveProperty<string> CurrentPageTitle { get; } = new ReactiveProperty<string>();
+        public ReactiveProperty<string> CurrentPageDescription { get; } = new ReactiveProperty<string>();
+
+        public ReactiveProperty<VerticalAlignment> CurrentPageTitleVerticalAlignment { get; } = new();
+        public ReactiveProperty<HorizontalAlignment> CurrentPageTitleHorizontalAlignment { get; } = new();
 
         public ReactiveProperty<bool> IsPlaying { get; } = new ReactiveProperty<bool>(false);
         public ReactiveProperty<bool> IsPaused { get; } = new ReactiveProperty<bool>(false);
@@ -1203,6 +860,13 @@ namespace PresentationMovieMaker.ViewModels
         /// </summary>
         public MediaElementViewModel MediaElement2 { get; } = new MediaElementViewModel();
 
+        public ObservableCollection<PathViewModel> SlideSubImages { get; } = new ObservableCollection<PathViewModel>();
+        public ReactiveProperty<int> SlideSubImageCount { get; } = new();
+        public ReactiveProperty<double> SlideSubImageMaxHeight { get; } = new ReactiveProperty<double>(500);
+        public ReactiveProperty<double> SlideSubImageMargin { get; } = new ReactiveProperty<double>(30);
+
+        public ReactiveProperty<BitmapSource> SlideBackgroundImage { get; } = new ReactiveProperty<BitmapSource>();
+
         public ReactiveProperty<double> BlackOpacity { get; } = new ReactiveProperty<double>(0.0);
 
         public ReactiveProperty<BitmapSource> ImageSource { get; } = new ReactiveProperty<BitmapSource>();
@@ -1224,6 +888,13 @@ namespace PresentationMovieMaker.ViewModels
         public Stopwatch CurrentTime { get; } = new Stopwatch();
         public ReactiveProperty<string> CurrentTimeText { get; } = new ReactiveProperty<string>("00:00:00");
         public ReactiveProperty<double> CurrentAnimationTime { get; } = new ReactiveProperty<double>(0.0);
+
+        public ReactiveProperty<PageInfoViewModel?> CurrentPage { get; } = new ReactiveProperty<PageInfoViewModel?>();
+
+        public ReactiveProperty<double> ActualFaceImageWidth { get; } = new ReactiveProperty<double>();
+
+        public ReactiveProperty<double> TitleFontSize { get; } = new ReactiveProperty<double>(70);
+        public ReactiveProperty<double> DescriptionFontSize { get; } = new ReactiveProperty<double>(50);
 
         public void WriteLogLine(string message)
         {
@@ -1253,27 +924,30 @@ namespace PresentationMovieMaker.ViewModels
             SaveSettings(MovieSetting.ToSerializable(), path);
         }
 
-        private string GetApplicationSettingPath()
+        public string ApplicationSettingPath
         {
-            var assembly = Assembly.GetEntryAssembly();
-            if (assembly is null)
+            get
             {
-                throw new Exception();
-            }
+                var assembly = Assembly.GetEntryAssembly();
+                if (assembly is null)
+                {
+                    throw new Exception();
+                }
 
-            var dirPath = Path.GetDirectoryName(assembly.Location);
-            if (dirPath is null)
-            {
-                throw new Exception();
-            }
+                var dirPath = Path.GetDirectoryName(assembly.Location);
+                if (dirPath is null)
+                {
+                    throw new Exception();
+                }
 
-            var path = Path.Combine(dirPath, "ApplicationSetting.json");
-            return path;
+                var path = Path.Combine(dirPath, "ApplicationSetting.json");
+                return path;
+            }
         }
 
         public void LoadApplicationSettings()
         {
-            var path = GetApplicationSettingPath();
+            var path = ApplicationSettingPath;
             var deserialized = LoadSettings<ApplicationSetting>(path);
             if (deserialized is null)
             {
@@ -1298,7 +972,7 @@ namespace PresentationMovieMaker.ViewModels
             setting.BouyomiChanRemoteTalkPath = BouyomiChanRemoteTalkPath.Value.ActualPath.Value;
             setting.AzureSubscriptionKey = SoundUtility.AzureSubscriptionKey;
             setting.AzureServiceRegion = SoundUtility.AzureServiceRegion;
-            var path = GetApplicationSettingPath();
+            var path = ApplicationSettingPath;
             SaveSettings(setting, path);
         }
 
@@ -1322,6 +996,16 @@ namespace PresentationMovieMaker.ViewModels
 
             MovieSetting.DeepCopyFrom(deserialized);
             SetupFace();
+        }
+
+        private void UpdateSlideBackground(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            SlideBackgroundImage.Value = CreateBitmapSource(path);
         }
 
         private void SetupFace()

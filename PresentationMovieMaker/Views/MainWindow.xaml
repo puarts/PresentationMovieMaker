@@ -7,8 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
     Title="{Binding Title.Value}"
-    Width="700"
-    Height="600"
+    Width="1000"
+    Height="900"
     AllowDrop="True"
     mc:Ignorable="d">
     <Window.DataContext>
@@ -36,7 +36,11 @@
             <RowDefinition Height="auto" />
             <RowDefinition Height="50" />
         </Grid.RowDefinitions>
-        <Menu>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Menu Grid.ColumnSpan="2">
             <MenuItem Header="ファイル(_F)">
                 <MenuItem Command="{Binding CreateNewSettingCommand}" Header="新規作成" />
             </MenuItem>
@@ -44,7 +48,7 @@
         <TabControl Grid.Row="1">
             <TabItem Header="基本設定">
                 <StackPanel>
-                    <Label>設定ファイル:</Label>
+                    <TextBlock>設定ファイル:</TextBlock>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
@@ -92,6 +96,10 @@
             </TabItem>
             <TabItem Header="詳細設定">
                 <StackPanel Orientation="Vertical">
+                    <TextBox
+                        Background="LightGray"
+                        IsReadOnly="True"
+                        Text="{Binding ApplicationSettingPath, Mode=OneTime}" />
                     <ItemsControl ItemsSource="{Binding Settings}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -103,21 +111,32 @@
             </TabItem>
         </TabControl>
 
+        <local:SlideView
+            Grid.Row="1"
+            Grid.Column="1"
+            DataContext="{Binding .}" />
+
         <GridSplitter
             Grid.Row="1"
+            Grid.ColumnSpan="2"
             Height="5"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
             ShowsPreview="True" />
-        <local:MovieSettingView Grid.Row="2" DataContext="{Binding MovieSetting}" />
+        <local:MovieSettingView
+            Grid.Row="2"
+            Grid.ColumnSpan="2"
+            DataContext="{Binding MovieSetting}" />
         <GridSplitter
             Grid.Row="3"
+            Grid.ColumnSpan="2"
             Height="5"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
             ShowsPreview="True" />
         <TextBox
             Grid.Row="4"
+            Grid.ColumnSpan="2"
             AcceptsReturn="True"
             Text="{Binding Log.Value}"
             TextChanged="TextBox_TextChanged" />
