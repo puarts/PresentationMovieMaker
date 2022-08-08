@@ -32,6 +32,12 @@ namespace PresentationMovieMaker.ViewModels
     {
         public void PlaySlideshow(int startPageIndex = 0)
         {
+            if (IsPlaying.Value)
+            {
+                CancelPlaying();
+                _playTask?.Wait();
+            }
+
             WriteLogLine("再生開始");
             CurrentTime.Start();
             var timerCancellationTokenSource = new CancellationTokenSource();
@@ -131,28 +137,33 @@ namespace PresentationMovieMaker.ViewModels
             CurrentPageNumber.Value = 1;
             {
                 var pageInfo = MovieSetting.PageInfos[_pageIndex];
-                if (pageInfo != null && IsImageFile(pageInfo.ImagePath.Value.ActualPath.Value))
+                if (pageInfo != null)
                 {
-                    var currentBufferIndex = _pageIndex % 2;
-                    var nextBufferIndex = currentBufferIndex == 0 ? 1 : 0;
-                    if (imagePaths[currentBufferIndex].Value != pageInfo.ImagePath.Value.ActualPath.Value)
+                    if (IsImageFile(pageInfo.ImagePath.Value.ActualPath.Value))
                     {
-                        this.IsMediaLoaded = false;
-                        WriteLogLine($"Start load MediaElement: bufferIndex = {currentBufferIndex}");
-                        imagePaths[currentBufferIndex].Value = pageInfo.ImagePath.Value.ActualPath.Value;
-                        View?.Dispatcher.Invoke(() =>
+                        var currentBufferIndex = _pageIndex % 2;
+                        var nextBufferIndex = currentBufferIndex == 0 ? 1 : 0;
+                        if (imagePaths[currentBufferIndex].Value != pageInfo.ImagePath.Value.ActualPath.Value)
                         {
+                            this.IsMediaLoaded = false;
+                            WriteLogLine($"Start load MediaElement: bufferIndex = {currentBufferIndex}");
+                            imagePaths[currentBufferIndex].Value = pageInfo.ImagePath.Value.ActualPath.Value;
+                            View?.Dispatcher.Invoke(() =>
+                            {
                             // manualだとPauseしないとずっと読み込まれない
-                            PlayWindow?.PlayMediaElement(currentBufferIndex);
-                        });
-                        //while (!this.IsMediaLoaded)
-                        //{
-                        //    Thread.Sleep(30);
-                        //}
+                                PlayWindow?.PlayMediaElement(currentBufferIndex);
+                            });
+                            //while (!this.IsMediaLoaded)
+                            //{
+                            //    Thread.Sleep(30);
+                            //}
+                        }
+
+                        bufferVisibilities[1].Value = currentBufferIndex == 1;
+                        bufferVisibilities[0].Value = true;
                     }
 
-                    bufferVisibilities[1].Value = currentBufferIndex == 1;
-                    bufferVisibilities[0].Value = true;
+                    CurrentPage.Value = pageInfo;
                 }
             }
 

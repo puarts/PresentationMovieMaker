@@ -528,10 +528,6 @@ namespace PresentationMovieMaker.ViewModels
                 _bgmOutputDevice.Init(loop);
 
                 _bgmOutputDevice.Volume = 1.0f;
-                if (!isFadeInEnabled)
-                {
-                    SyncBgmVolumeFromSetting();
-                }
 
                 _bgmOutputDevice.Play();
 
@@ -585,7 +581,10 @@ namespace PresentationMovieMaker.ViewModels
 
         public void SyncBgmVolumeFromSetting()
         {
-            _bgmOutputDevice.Volume = (float)MovieSetting.BgmVolume.Value;
+            if (_bgmFileReader is not null)
+            {
+                _bgmFileReader.Volume = (float)MovieSetting.BgmVolume.Value;
+            }
         }
 
         private void WaitResume()
@@ -640,7 +639,6 @@ namespace PresentationMovieMaker.ViewModels
             var audioFile = new AudioFileReader(actualPath);
             audioFile.Volume = volume;
             _outputDevice.Init(audioFile);
-            _outputDevice.Volume = 1.0f;
 
             var duration = SoundUtility.GetWavFileDuration(actualPath);
 
