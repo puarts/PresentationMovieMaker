@@ -404,6 +404,7 @@ namespace PresentationMovieMaker.ViewModels
 
             CurrentPageTitle.Value = page?.Title.Value ?? string.Empty;
             CurrentPageDescription.Value = page?.Description.Value ?? string.Empty;
+            SlideSubImageMargin.Value = page?.SubImageMargin.Value ?? 30.0;
 
             Application.Current.Dispatcher.Invoke(() =>
             {

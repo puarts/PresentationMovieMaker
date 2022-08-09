@@ -55,5 +55,7 @@ namespace PresentationMovieMaker.DataModels
 
         public List<string> SubImagePaths { get; set; } = new List<string>();
 
+        public double SubImageMargin { get; set; } = 30.0;
+
     }
 }

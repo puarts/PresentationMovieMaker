@@ -36,6 +36,7 @@ namespace PresentationMovieMaker.DataModels
 
         public double CaptionFontSize { get; set; } = 30.0;
 
+        public string DefaultSectionPageTurningAudioPath { get; set; } = string.Empty;
         public string DefaultPageTurningAudioPath { get; set; } = string.Empty;
         public double DefaultPageTurningAudioVolume { get; set; } = 1.0;
 

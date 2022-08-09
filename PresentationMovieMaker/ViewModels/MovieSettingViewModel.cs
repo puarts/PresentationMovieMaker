@@ -35,6 +35,7 @@ namespace PresentationMovieMaker.ViewModels
             Properties.Add(ImageEyeClosePath);
             Properties.Add(ImageEyeOpenPath);
             Properties.Add(DefaultPageTurningAudioPath);
+            Properties.Add(DefaultSectionPageTurningAudioPath);
             Properties.Add(DefaultPageTurningAudioVolume);
             Properties.Add(CaptionBackgroundOpacity);
 
@@ -384,6 +385,8 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<PathViewModel> DefaultPageTurningAudioPath { get; set; } = new PathPropertyViewModel(nameof(DefaultPageTurningAudioPath));
 
+        public ReactiveProperty<PathViewModel> DefaultSectionPageTurningAudioPath { get; set; } = new PathPropertyViewModel(nameof(DefaultSectionPageTurningAudioPath));
+
         public DoublePropertyViewModel DefaultPageTurningAudioVolume { get; set; } = new DoublePropertyViewModel(nameof(DefaultPageTurningAudioVolume));
 
         public DoublePropertyViewModel CaptionBackgroundOpacity { get; set; } = new DoublePropertyViewModel("キャプション背景不透明度");
@@ -540,6 +543,7 @@ namespace PresentationMovieMaker.ViewModels
             ImageBodyPath.Value.Path.Value = dataModel.ImageBodyPath;
             SlideBackgroundImagePath.Value.Path.Value = dataModel.SlideBackgroundImagePath;
             DefaultPageTurningAudioPath.Value.Path.Value = dataModel.DefaultPageTurningAudioPath;
+            DefaultSectionPageTurningAudioPath.Value.Path.Value = dataModel.DefaultSectionPageTurningAudioPath;
             CaptionBackgroundOpacity.Value = dataModel.CaptionBackgroundOpacity;
         }
 
@@ -578,8 +582,24 @@ namespace PresentationMovieMaker.ViewModels
             serial.SlideBackgroundImagePath = SlideBackgroundImagePath.Value.ActualPath.Value;
             serial.ImageBodyPath = ImageBodyPath.Value.ActualPath.Value;
             serial.DefaultPageTurningAudioPath = DefaultPageTurningAudioPath.Value.ActualPath.Value;
+            serial.DefaultSectionPageTurningAudioPath = DefaultSectionPageTurningAudioPath.Value.ActualPath.Value;
             serial.CaptionBackgroundOpacity = CaptionBackgroundOpacity.Value;
             return serial;
+        }
+
+        public PathViewModel GetDefaultPageTurningAudioPath(PageType pageType)
+        {
+            switch (pageType)
+            {
+                case PageType.Title:
+                case PageType.SectionHeader:
+                    return DefaultSectionPageTurningAudioPath.Value.IsEmpty() ?
+                        DefaultPageTurningAudioPath.Value : DefaultSectionPageTurningAudioPath.Value;
+                case PageType.TitleAndBody:
+                    return DefaultPageTurningAudioPath.Value;
+                default:
+                    throw new Exception();
+            }
         }
 
         public void UpdateDuration()

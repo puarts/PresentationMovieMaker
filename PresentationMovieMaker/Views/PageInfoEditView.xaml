@@ -139,7 +139,12 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-
+                        <Label>スライド内画像マージン</Label>
+                        <local:SliderBox
+                            Interval="1"
+                            Maximum="100"
+                            Minimum="0"
+                            Value="{Binding SubImageMargin.Value}" />
                         <Label>BGMパス:</Label>
                         <local:PathView DataContext="{Binding BgmPath.Value}" />
                         <Label>画像、動画パス:</Label>

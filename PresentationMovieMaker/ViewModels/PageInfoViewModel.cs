@@ -172,6 +172,14 @@ namespace PresentationMovieMaker.ViewModels
                     Parent.Parent?.SyncPageInfo(this);
                 }
             });
+
+            Subscribe(SubImageMargin, value =>
+            {
+                if (Parent.SelectedPageInfo?.Value == this && Parent.Parent != null)
+                {
+                    Parent.Parent.SlideSubImageMargin.Value = value;
+                }
+            });
         }
 
         public PageInfoViewModel(int pageNumber, MovieSettingViewModel parent)
@@ -199,6 +207,7 @@ namespace PresentationMovieMaker.ViewModels
             Title.Value = dataModel.Title;
             PageType.Value = dataModel.PageType;
             Description.Value = dataModel.Description;
+            SubImageMargin.Value = dataModel.SubImageMargin;
 
             NarrationInfos.Clear();
             if (dataModel.NarrationInfos.Any())
@@ -285,6 +294,8 @@ namespace PresentationMovieMaker.ViewModels
 
         public ObservableCollection<PathViewModel> SubImagePaths { get; } = new ObservableCollection<PathViewModel>();
 
+        public ReactiveProperty<double> SubImageMargin { get; } = new ReactiveProperty<double>();
+
 
         public PageInfo ToSerializable()
         {
@@ -302,6 +313,7 @@ namespace PresentationMovieMaker.ViewModels
             serial.Title = Title.Value;
             serial.Description = Description.Value;
             serial.PageType = PageType.Value;
+            serial.SubImageMargin = SubImageMargin.Value;
             return serial;
         }
 

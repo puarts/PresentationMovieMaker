@@ -115,11 +115,11 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
             <ItemsControl.Margin>
-                <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
+                <MultiBinding Converter="{x:Static local:ActualMarginConverter.Instance}">
                     <MultiBinding.Bindings>
-                        <Binding Path="PlayWindowWidth.Value" />
+                        <Binding ElementName="controlRoot" Path="DataContext.PlayWindowWidth.Value" />
                         <Binding ElementName="controlRoot" Path="ActualWidth" />
-                        <Binding Path="SlideSubImageMargin.Value" />
+                        <Binding ElementName="controlRoot" Path="DataContext.SlideSubImageMargin.Value" />
                     </MultiBinding.Bindings>
                 </MultiBinding>
             </ItemsControl.Margin>

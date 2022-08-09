@@ -331,7 +331,7 @@ namespace PresentationMovieMaker.ViewModels
                                 if (_pageIndex != 0
                                 && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0))
                                 {
-                                    var audioPath = MovieSetting.DefaultPageTurningAudioPath.Value;
+                                    var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageInfo.PageType.Value);
                                     if (!audioPath.IsEmpty())
                                     {
                                         Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
