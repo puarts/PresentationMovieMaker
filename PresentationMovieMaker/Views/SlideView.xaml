@@ -6,6 +6,7 @@
     xmlns:local="clr-namespace:PresentationMovieMaker.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
+    xmlns:conv="clr-namespace:PresentationMovieMaker.ValueConverters"
     Name="controlRoot"
     d:DataContext="{d:DesignInstance vm:MainWindowViewModel}"
     d:DesignHeight="450"
@@ -127,7 +128,6 @@
 
         <!--  タイトル  -->
         <TextBlock
-            Margin="50,30,30,30"
             HorizontalAlignment="{Binding CurrentPageTitleHorizontalAlignment.Value}"
             VerticalAlignment="{Binding CurrentPageTitleVerticalAlignment.Value}"
             local:Adorning.StrokeOpacity="{Binding BlackOpacity.Value, Converter={x:Static local:InverseOpacityConverter.Instance}}"
@@ -149,11 +149,24 @@
             <local:Adorning.Stroke>
                 <SolidColorBrush Color="CadetBlue" />
             </local:Adorning.Stroke>
+            <TextBlock.Resources>
+                <Thickness x:Key="TitleMargin">50,30,30,30</Thickness>
+            </TextBlock.Resources>
+
+            <TextBlock.Margin>
+                <MultiBinding Converter="{x:Static conv:MultiplyMarginConverter.Instance}">
+                    <MultiBinding.Bindings>
+                        <Binding Path="PlayWindowWidth.Value" />
+                        <Binding ElementName="controlRoot" Path="ActualWidth" />
+                        <Binding Source="{StaticResource TitleMargin}"/>
+                    </MultiBinding.Bindings>
+                </MultiBinding>
+            </TextBlock.Margin>
+
         </TextBlock>
 
         <!--  本文  -->
         <TextBlock
-            Margin="50,150,10,10"
             HorizontalAlignment="Left"
             VerticalAlignment="Top"
             local:Adorning.StrokeThickness="0"
@@ -173,6 +186,18 @@
             <local:Adorning.Stroke>
                 <SolidColorBrush Opacity="{Binding BlackOpacity.Value, Converter={x:Static local:InverseOpacityConverter.Instance}}" Color="CadetBlue" />
             </local:Adorning.Stroke>
+            <TextBlock.Resources>
+                <Thickness x:Key="DescriptionMargin">50,150,10,10</Thickness>
+            </TextBlock.Resources>
+            <TextBlock.Margin>
+                <MultiBinding Converter="{x:Static conv:MultiplyMarginConverter.Instance}">
+                    <MultiBinding.Bindings>
+                        <Binding Path="PlayWindowWidth.Value" />
+                        <Binding ElementName="controlRoot" Path="ActualWidth" />
+                        <Binding Source="{StaticResource DescriptionMargin}"/>
+                    </MultiBinding.Bindings>
+                </MultiBinding>
+            </TextBlock.Margin>
 
         </TextBlock>
 

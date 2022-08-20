@@ -180,8 +180,19 @@ namespace PresentationMovieMaker.ViewModels
 
             SaveSettingCommand.Subscribe(() =>
             {
-                WriteLogLine($"設定を保存しました。\n{SettingPath.Value}");
+                if (string.IsNullOrEmpty(SettingPath.Value))
+                {
+                    var dialog = new SaveFileDialog();
+                    if (dialog.ShowDialog() != true)
+                    {
+                        return;
+                    }
+
+                    SettingPath.Value = dialog.FileName;
+                }
+
                 SaveSettings(SettingPath.Value);
+                WriteLogLine($"設定を保存しました。\n{SettingPath.Value}");
             }).AddTo(Disposable);
 
             const string cacheDirName = "SlideCache";
@@ -975,14 +986,16 @@ namespace PresentationMovieMaker.ViewModels
             SaveSettings(setting, path);
         }
 
-        private void SaveSettings<T>(T target, string path)
+        private string? SaveSettings<T>(T target, string path)
         {
+            var savePath = path;
             var options = new JsonSerializerOptions()
             {
                 WriteIndented = true,
             };
             var jsonText = JsonSerializer.Serialize(target, options);
-            File.WriteAllText(path, jsonText);
+            File.WriteAllText(savePath, jsonText);
+            return savePath;
         }
 
         private void LoadSettings(string path)
