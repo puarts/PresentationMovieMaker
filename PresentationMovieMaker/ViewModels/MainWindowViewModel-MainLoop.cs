@@ -86,7 +86,7 @@ namespace PresentationMovieMaker.ViewModels
                         _soundEffectOutputDevice.Stop();
                     }
 
-                    View?.Dispatcher.Invoke(() =>
+                    View?.Dispatcher.InvokeAsync(() =>
                     {
                         //PlayWindow?.Hide();
                         //PlayWindow?.Close();
@@ -328,13 +328,23 @@ namespace PresentationMovieMaker.ViewModels
                                 });
 
                                 // ページ切り替え時の音が設定されていない場合は、デフォルトのSEを再生
-                                if (_pageIndex != 0
-                                && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0))
+                                var pageType = pageInfo.PageType.Value;
+                                bool usesDefaultSe = _pageIndex != 0
+                                && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0);
+                                if (usesDefaultSe)
                                 {
-                                    var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageInfo.PageType.Value);
+                                    var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageType);
                                     if (!audioPath.IsEmpty())
                                     {
-                                        Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
+                                        bool isParallel = pageType == PageType.TitleAndBody;
+                                        if (isParallel)
+                                        {
+                                            Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
+                                        }
+                                        else
+                                        {
+                                            PlayNarrationAudio(audioPath, 1.0f, linkedCt);
+                                        }
                                     }
                                 }
 
