@@ -528,41 +528,57 @@ namespace PresentationMovieMaker.ViewModels
             PlayAudio(actualPath, (float)volume, linkedCt);
         }
 
-        private void StartBgm(string bgmPath, float targetVolume, bool isFadeInEnabled = false, int fadeMilliseconds = 1000)
+        private void PrepareToStartBgm(string bgmPath, float targetVolume, bool isFadeInEnabled = false)
         {
             if (File.Exists(bgmPath))
             {
-                WriteLogLine($"BGMをボリューム{MovieSetting.BgmVolume.Value}で再生します。\"{bgmPath}\"");
+                WriteLogLine($"BGMをボリューム{MovieSetting.BgmVolume.Value}で再生します。\"{bgmPath}\" isFadeInEnabled={isFadeInEnabled}");
                 var reader = new AudioFileReader(bgmPath);
                 _bgmFileReader = reader;
-                _bgmFileReader.Volume = 0.0f;
+                if (isFadeInEnabled)
+                {
+                    _bgmFileReader.Volume = 0.0f;
+                }
+                else
+                {
+                    _bgmFileReader.Volume = targetVolume;
+                }
                 LoopStream loop = new LoopStream(reader);
                 _bgmOutputDevice.Init(loop);
 
                 _bgmOutputDevice.Volume = 1.0f;
 
-                _bgmOutputDevice.Play();
-
-                if (isFadeInEnabled)
-                {
-                    int intervalMilliseconds = fadeMilliseconds;
-                    int samples = 10;
-                    int sleepMilliseconds = intervalMilliseconds / samples;
-                    float increment = targetVolume / samples;
-                    for (int i = 0; i < samples; ++i)
-                    {
-                        Thread.Sleep(sleepMilliseconds);
-
-                        float nextVolume = _bgmFileReader.Volume + increment;
-                        _bgmFileReader.Volume = nextVolume > targetVolume ? targetVolume : nextVolume;
-                    }
-                }
-                _bgmFileReader.Volume = targetVolume;
             }
             else
             {
                 WriteErrorLogLine($"BGMファイルが存在しませんでした。\"{bgmPath}\"");
             }
+        }
+        private void StartPreparedBgm(string bgmPath, float targetVolume, bool isFadeInEnabled = false, int fadeMilliseconds = 1000)
+        {
+            _bgmOutputDevice.Play();
+
+            if (isFadeInEnabled)
+            {
+                int intervalMilliseconds = fadeMilliseconds;
+                int samples = 10;
+                int sleepMilliseconds = intervalMilliseconds / samples;
+                float increment = targetVolume / samples;
+                for (int i = 0; i < samples; ++i)
+                {
+                    Thread.Sleep(sleepMilliseconds);
+
+                    float nextVolume = _bgmFileReader!.Volume + increment;
+                    _bgmFileReader.Volume = nextVolume > targetVolume ? targetVolume : nextVolume;
+                }
+            }
+            _bgmFileReader!.Volume = targetVolume;
+        }
+
+        private void StartBgm(string bgmPath, float targetVolume, bool isFadeInEnabled = false, int fadeMilliseconds = 1000)
+        {
+            PrepareToStartBgm(bgmPath, targetVolume, isFadeInEnabled);
+            StartPreparedBgm(bgmPath, targetVolume, isFadeInEnabled, fadeMilliseconds);
         }
 
         private void FadeOutCurrentBgm(int bgmFadeMiliseconds)
@@ -588,6 +604,7 @@ namespace PresentationMovieMaker.ViewModels
                 _bgmFileReader.Volume = 0.0f;
 
                 _bgmOutputDevice.Stop();
+                _bgmFileReader.Volume = 1.0f;
             }
         }
 

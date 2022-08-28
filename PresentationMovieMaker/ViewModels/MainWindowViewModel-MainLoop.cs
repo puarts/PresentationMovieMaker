@@ -167,6 +167,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
             }
 
+            PrepareToStartBgm(MovieSetting.BgmPath.Value, (float)MovieSetting.BgmVolume.Value);
             if (startPageIndex == 0)
             {
                 // 録画開始しやすいように少し間を空ける
@@ -174,7 +175,7 @@ namespace PresentationMovieMaker.ViewModels
             }
 
             // BGM の開始
-            StartBgm(MovieSetting.BgmPath.Value, (float)MovieSetting.BgmVolume.Value);
+            StartPreparedBgm(MovieSetting.BgmPath.Value, (float)MovieSetting.BgmVolume.Value);
 
             Task.Run(() =>
             {
