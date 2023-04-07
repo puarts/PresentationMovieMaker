@@ -11,7 +11,7 @@ namespace PresentationMovieMaker.Utilities;
 public class Style
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("id")]
     public int Id { get; set; }
@@ -20,25 +20,25 @@ public class Style
 public class SupportedFeatures
 {
     [JsonPropertyName("permitted_synthesis_morphing")]
-    public string PermittedSynthesisMorphing { get; set; }
+    public string? PermittedSynthesisMorphing { get; set; }
 }
 
 public class Speaker
 {
     [JsonPropertyName("supported_features")]
-    public SupportedFeatures SupportedFeatures { get; set; }
+    public SupportedFeatures? SupportedFeatures { get; set; }
 
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     [JsonPropertyName("speaker_uuid")]
-    public string SpeakerUuid { get; set; }
+    public string? SpeakerUuid { get; set; }
 
     [JsonPropertyName("styles")]
-    public List<Style> Styles { get; set; }
+    public List<Style>? Styles { get; set; }
 
     [JsonPropertyName("version")]
-    public string Version { get; set; }
+    public string? Version { get; set; }
 }
 
 public static class VoicevoxUtility

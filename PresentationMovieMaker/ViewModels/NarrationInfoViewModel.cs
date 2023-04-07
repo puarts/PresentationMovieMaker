@@ -433,7 +433,12 @@ namespace PresentationMovieMaker.ViewModels
 
         public void StartSpeech(string text, CancellationToken? ct = null, int intervalMilliseconds = 100, Action? waitCallback = null)
         {
-            if (SelectedVoiceName.Value == SoundUtility.BouyomiChanDefaultVoiceName)
+            if (SoundUtility.IsVoiceVoxVoice(SelectedVoiceName.Value))
+            {
+                var speaker = 1;
+                VoicevoxUtility.Speek(text, speaker).Wait();
+            }
+            else if (SelectedVoiceName.Value == SoundUtility.BouyomiChanDefaultVoiceName)
             {
                 SoundUtility.SpeakWithBouyomiChan(
                     text,

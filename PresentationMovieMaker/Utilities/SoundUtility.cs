@@ -28,6 +28,7 @@ namespace PresentationMovieMaker.Utilities
         public const string KeitaVoiceName = "ja-JP-KeitaNeural";
         public const string SofTalkDefaultVoiceName = "SofTalkDefault";
         public const string BouyomiChanDefaultVoiceName = "BouyomiChanDefault";
+        public const string VoicevoxVoiceName = "VoicevoxDefault";
 
         private static System.Speech.Synthesis.SpeechSynthesizer? _synth = null;
         private static SpeechSynthesizer? _cognitiveServicesSynth = null;
@@ -35,6 +36,11 @@ namespace PresentationMovieMaker.Utilities
         [System.Runtime.InteropServices.DllImport("winmm.dll")]
         private static extern int mciSendString(string command,
            StringBuilder? buffer, int bufferSize, IntPtr hwndCallback);
+
+        public static bool IsVoiceVoxVoice(string voiceName)
+        {
+            return voiceName == VoicevoxVoiceName;
+        }
 
         public static bool IsNeuralVoice(string voiceName)
         {
@@ -177,6 +183,11 @@ namespace PresentationMovieMaker.Utilities
 
         public static TimeSpan CalculateDurationOfSpeech(string message, string? voiceName = null, int volume = 100, int speedRate = 0)
         {
+            if (IsVoiceVoxVoice(voiceName))
+            {
+                return new TimeSpan();
+            }
+
             var synth = GetSynthesizer();
             var currentPrompt = synth.GetCurrentlySpokenPrompt();
             if (currentPrompt != null && !currentPrompt.IsCompleted)
@@ -274,6 +285,7 @@ namespace PresentationMovieMaker.Utilities
             {
                 yield return voice.VoiceInfo.Name;
             }
+            yield return VoicevoxVoiceName;
         }
 
         public static string GetHarukaVoiceName()

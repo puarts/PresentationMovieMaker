@@ -18,7 +18,6 @@ namespace PresentationMovieMakerTest
         public void VoiceVoxTest()
         {
             var speakers = VoicevoxUtility.EnumerateSpeakers().ToArray();
-
             foreach (var style in speakers.SelectMany(x => x.Styles))
             {
                 Console.WriteLine($"{style.Name}: {style.Id}");
