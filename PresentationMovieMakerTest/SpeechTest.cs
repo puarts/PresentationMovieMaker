@@ -1,13 +1,40 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Linq;
+using System.Media;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Speech.Synthesis;
+using System.Threading.Tasks;
+using PresentationMovieMaker.Utilities;
+using System.IO;
 
 namespace PresentationMovieMakerTest
 {
     [TestClass]
     public class SpeechTest
     {
+        [TestMethod]
+        public void VoiceVoxTest()
+        {
+            var speakers = VoicevoxUtility.EnumerateSpeakers().ToArray();
+
+            foreach (var style in speakers.SelectMany(x => x.Styles))
+            {
+                Console.WriteLine($"{style.Name}: {style.Id}");
+            }
+
+            // 直接再生
+            VoicevoxUtility.Speek("これは直接再生するテストです", 39).Wait();
+
+            // 音声ファイルに保存してから再生
+            using var dirCreator = new ScopedDirectoryCreator();
+            var wavePath = Path.Combine(dirCreator.DirectoryPath, "output.wav");
+            VoicevoxUtility.RecordSpeech(wavePath, "これは録音テストです", 39).Wait();
+            var player = new SoundPlayer(wavePath);
+            player.PlaySync();
+        }
+
         [TestMethod]
         public void SplitTextTest()
         {

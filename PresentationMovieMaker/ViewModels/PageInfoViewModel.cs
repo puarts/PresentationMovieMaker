@@ -180,6 +180,18 @@ namespace PresentationMovieMaker.ViewModels
                     Parent.Parent.SlideSubImageMargin.Value = value;
                 }
             });
+
+            Subscribe(SubImagePaths.CollectionChangedAsObservable(), e =>
+            {
+                if (Parent.SelectedPageInfo?.Value == this && Parent.Parent != null)
+                {
+                    Parent.Parent.SlideSubImages.Clear();
+                    foreach (var path in SubImagePaths)
+                    {
+                        Parent.Parent.SlideSubImages.Add(path);
+                    }
+                }
+            });
         }
 
         public PageInfoViewModel(int pageNumber, MovieSettingViewModel parent)
