@@ -284,7 +284,8 @@ namespace PresentationMovieMaker.Views
             f = new EventHandler((o, e) =>
             {
                 var adornerLayer = AdornerLayer.GetAdornerLayer(tb);
-                if (adornerLayer == null) throw new Exception("AdornerLayer should not be empty");
+                if (adornerLayer == null) 
+                    throw new Exception("AdornerLayer should not be empty");
                 var adorners = adornerLayer.GetAdorners(tb);
                 var adorner = adorners == null ? null : adorners.OfType<StrokeAdorner>().FirstOrDefault();
                 if (adorner == null)

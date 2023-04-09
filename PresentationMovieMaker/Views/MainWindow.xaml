@@ -5,22 +5,17 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:PresentationMovieMaker.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.modernwpf.com/2019"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
     Title="{Binding Title.Value}"
     Width="1000"
     Height="900"
     AllowDrop="True"
+    MouseLeftButtonDown="Window_MouseLeftButtonDown"
     mc:Ignorable="d">
     <Window.DataContext>
         <vm:MainWindowViewModel />
     </Window.DataContext>
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ResourceDictionary.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
     <Window.InputBindings>
         <KeyBinding Command="{Binding SaveSettingCommand}" Gesture="Ctrl+S" />
     </Window.InputBindings>
@@ -91,7 +86,9 @@
                             ナレーション再配置
                         </Button>
                     </Grid>
-                    <StackPanel Orientation="Horizontal" />
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox IsChecked="{Binding HideCaption.Value}">キャプション非表示</CheckBox>
+                    </StackPanel>
                 </StackPanel>
             </TabItem>
             <TabItem Header="詳細設定">
@@ -114,6 +111,7 @@
         <local:SlideView
             Grid.Row="1"
             Grid.Column="1"
+            MaxHeight="400"
             DataContext="{Binding .}" />
 
         <GridSplitter

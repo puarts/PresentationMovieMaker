@@ -30,13 +30,6 @@
             <MenuItem Command="{Binding PauseCommand}" Header="一時停止/再開" />
         </ContextMenu>
     </Window.ContextMenu>
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ResourceDictionary.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
 
     <Grid x:Name="rootCanvas">
 

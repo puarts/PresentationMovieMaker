@@ -9,9 +9,9 @@ using System.Windows.Data;
 
 namespace PresentationMovieMaker.Views
 {
-    public class BoolToVisibieilityConverter : IValueConverter
+    public class BoolToVisibilityConverter : IValueConverter
     {
-        public static BoolToVisibieilityConverter Instance { get; } = new BoolToVisibieilityConverter();
+        public static BoolToVisibilityConverter Instance { get; } = new BoolToVisibilityConverter();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {

@@ -37,7 +37,7 @@ namespace PresentationMovieMaker.Utilities
         private static extern int mciSendString(string command,
            StringBuilder? buffer, int bufferSize, IntPtr hwndCallback);
 
-        public static bool IsVoiceVoxVoice(string voiceName)
+        public static bool IsVoiceVoxVoice(string? voiceName)
         {
             return voiceName == VoicevoxVoiceName;
         }
@@ -183,11 +183,7 @@ namespace PresentationMovieMaker.Utilities
 
         public static TimeSpan CalculateDurationOfSpeech(string message, string? voiceName = null, int volume = 100, int speedRate = 0)
         {
-            if (IsVoiceVoxVoice(voiceName))
-            {
-                return new TimeSpan();
-            }
-
+            var voice = IsVoiceVoxVoice(voiceName) ? null : voiceName;
             var synth = GetSynthesizer();
             var currentPrompt = synth.GetCurrentlySpokenPrompt();
             if (currentPrompt != null && !currentPrompt.IsCompleted)
@@ -196,9 +192,9 @@ namespace PresentationMovieMaker.Utilities
                 return new TimeSpan();
             }
 
-            if (voiceName is not null)
+            if (voice is not null)
             {
-                synth.SelectVoice(voiceName);
+                synth.SelectVoice(voice);
             }
 
             synth.Volume = volume;

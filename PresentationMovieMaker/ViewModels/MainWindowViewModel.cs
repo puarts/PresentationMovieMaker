@@ -49,7 +49,7 @@ namespace PresentationMovieMaker.ViewModels
         private Task? _playTask = null;
         private Task? _playPageTask = null;
         private Dictionary<char, BitmapSource> _pronuunciationBitmaps = new Dictionary<char, BitmapSource>();
-        private Dictionary<EyePattern, BitmapSource> _eyeBitmaps = new Dictionary<EyePattern, BitmapSource>();
+        private Dictionary<EyePattern, BitmapSource> _eyeBitmaps = new();
         private TextConverter _textConverter = new TextConverter();
         private Utilities.SpeechRecognizer _recognizer = new Utilities.SpeechRecognizer();
         Random _randGenerator = new Random();
@@ -76,6 +76,11 @@ namespace PresentationMovieMaker.ViewModels
 
             SoundUtility.GetSynthesizer().VisemeReached += (object? sender, System.Speech.Synthesis.VisemeReachedEventArgs e) =>
             {
+                if (_pronuunciationBitmaps.Count == 0)
+                {
+                    return;
+                }
+
                 var pron = TextUtility.ConvertVisemeToPronuounciation(e.Viseme);
                 //CurrentPronunciation.Value += $"[{e.Viseme}→{pron}]";
                 if (char.IsLetter(pron))
@@ -379,6 +384,21 @@ namespace PresentationMovieMaker.ViewModels
             {
                 SlideSubImageMaxHeight.Value = value.First - SlideSubImageMargin.Value * 2;
             });
+            Subscribe(CurrentPageTitleVerticalAlignment, value =>
+            {
+                switch (value)
+                {
+                    case VerticalAlignment.Center:
+                        {
+                            // タイトルの高さが分からないので、適当に1/3にしておく
+                            CurrentPageTitleVerticalOffset.Value = PlayWindowHeight.Value;
+                        }
+                        break;
+                    default:
+                        CurrentPageTitleVerticalOffset.Value = 0;
+                        break;
+                }
+            });
         }
         private void UpdatePlayWindowWidth()
         {
@@ -647,7 +667,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 {
-                    IsCaptionVisible.Value = true;
+                    IsCaptionVisible.Value = true && !HideCaption.Value;
                     CurrentText.Value = inputText;
                     var speechText = inputText.Replace(Environment.NewLine, "");
                     info.StartSpeech(speechText, linkedCt, MovieSetting.NarrationLineBreakInterval.Value, () =>
@@ -662,6 +682,8 @@ namespace PresentationMovieMaker.ViewModels
                 }
             }
         }
+
+        public ReactiveProperty<bool> HideCaption { get; } = new(false);
 
         private void PlayAudio(string actualPath, float volume, CancellationToken linkedCt)
         {
@@ -823,6 +845,7 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<double> CaptionMarginLeft { get; } = new ReactiveProperty<double>(60);
         public ReactiveProperty<double> CaptionMarginBottom { get; } = new ReactiveProperty<double>(60);
 
+
         public ReactiveProperty<double> CaptionWidth { get; } = new ReactiveProperty<double>();
         public ReactiveProperty<string> CurrentText { get; } = new ReactiveProperty<string>(string.Empty);
 
@@ -848,6 +871,8 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<VerticalAlignment> CurrentPageTitleVerticalAlignment { get; } = new();
         public ReactiveProperty<HorizontalAlignment> CurrentPageTitleHorizontalAlignment { get; } = new();
+        public ReactiveProperty<double> CurrentPageTitleVerticalOffset { get; } = new();
+        public ReactiveProperty<double> CurrentPageTitleHorizontalOffset { get; } = new();
 
         public ReactiveProperty<bool> IsPlaying { get; } = new ReactiveProperty<bool>(false);
         public ReactiveProperty<bool> IsPaused { get; } = new ReactiveProperty<bool>(false);
@@ -920,8 +945,8 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<double> ActualFaceImageWidth { get; } = new ReactiveProperty<double>();
 
-        public ReactiveProperty<double> TitleFontSize { get; } = new ReactiveProperty<double>(70);
-        public ReactiveProperty<double> DescriptionFontSize { get; } = new ReactiveProperty<double>(50);
+        public ReactiveProperty<double> TitleFontSize { get; } = new ReactiveProperty<double>(70.0);
+        public ReactiveProperty<double> DescriptionFontSize { get; } = new ReactiveProperty<double>(50.0);
 
         public void WriteLogLine(string message)
         {

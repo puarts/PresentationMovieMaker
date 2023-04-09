@@ -1,7 +1,10 @@
-﻿using Reactive.Bindings;
+﻿using PresentationMovieMaker.Utilities;
+using Reactive.Bindings;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -63,11 +66,18 @@ namespace PresentationMovieMaker.ViewModels
 
     public class DoublePropertyViewModel : PropertyViewModel<double>
     {
-        public DoublePropertyViewModel(string name)
+        public DoublePropertyViewModel(string name, double min = 0.0, double max = 1.0)
             : base(name)
         {
+            Minimum = min;
+            Maximum = max;
         }
+
+        public double Minimum { get; } = 0.0;
+
+        public double Maximum { get; } = 1.0;
     }
+
     public class BoolPropertyViewModel : PropertyViewModel<bool>
     {
         public BoolPropertyViewModel(string name)

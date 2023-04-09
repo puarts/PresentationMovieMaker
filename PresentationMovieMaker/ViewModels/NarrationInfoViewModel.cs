@@ -435,8 +435,31 @@ namespace PresentationMovieMaker.ViewModels
         {
             if (SoundUtility.IsVoiceVoxVoice(SelectedVoiceName.Value))
             {
-                var speaker = 1;
-                VoicevoxUtility.Speek(text, speaker).Wait();
+                var speaker = 3;
+                var pitchScale = 0.06f;
+                var task = VoicevoxUtility.Speek(text, speaker, GetVoiceVoxSpeechRate(), pitchScale);
+
+
+                // リップシンクするためにMicrosoftのSpeechSynthesizerを利用する
+                _currentPrompt = SoundUtility.Speak(text,
+                    SoundUtility.GetHarukaVoiceName(),
+                    0,
+                    GetStandardSpeechRate());
+
+                //Thread.Sleep(intervalMilliseconds);
+                while (!task.IsCompleted || (_currentPrompt != null && !_currentPrompt.IsCompleted))
+                {
+                    waitCallback?.Invoke();
+                    Thread.Sleep(intervalMilliseconds);
+                    if (ct != null && ct.Value.IsCancellationRequested)
+                    {
+                        StopSpeech();
+                        ct.Value.ThrowIfCancellationRequested();
+                    }
+                }
+
+                _currentPrompt = null;
+                ct?.ThrowIfCancellationRequested();
             }
             else if (SelectedVoiceName.Value == SoundUtility.BouyomiChanDefaultVoiceName)
             {
@@ -561,6 +584,11 @@ namespace PresentationMovieMaker.ViewModels
             // 0.5～1.5 を -5～+5 に変換する
             int rate = (int)((SpeechSpeedRate.Value - 1) * 10);
             return rate;
+        }
+
+        private float GetVoiceVoxSpeechRate()
+        {
+            return (float)(SpeechSpeedRate.Value * 1.2);
         }
 
         public void StopSpeech()

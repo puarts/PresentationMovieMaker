@@ -32,7 +32,7 @@
                 <RowDefinition Height="auto" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
-            <Image Source="{Binding ImagePath.Value.ActualPath.Value}" />
+            <Image Source="{Binding Image.Value, TargetNullValue={x:Null}}" />
             <!--<MediaElement
                 Loaded="PreviewMediaElement_Loaded"
                 LoadedBehavior="Manual"

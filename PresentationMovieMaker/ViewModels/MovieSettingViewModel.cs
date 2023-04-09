@@ -23,6 +23,9 @@ namespace PresentationMovieMaker.ViewModels
         {
             _logger = logger;
 
+            // デフォルト値
+            CharacterHorizontalOffset.Value = 20;
+
             Properties.Add(SlideBackgroundImagePath);
             Properties.Add(ImageBodyPath);
             Properties.Add(ImageFaceBasePath);
@@ -34,6 +37,8 @@ namespace PresentationMovieMaker.ViewModels
             Properties.Add(ImageMouthNPath);
             Properties.Add(ImageEyeClosePath);
             Properties.Add(ImageEyeOpenPath);
+            Properties.Add(CharacterVerticalOffset);
+            Properties.Add(CharacterHorizontalOffset);
             Properties.Add(DefaultPageTurningAudioPath);
             Properties.Add(DefaultSectionPageTurningAudioPath);
             Properties.Add(DefaultPageTurningAudioVolume);
@@ -362,7 +367,7 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<bool> ShowPageNumber { get; } = new ReactiveProperty<bool>(false);
         public ReactiveProperty<double> PageNumberPosX { get; } = new ReactiveProperty<double>(0);
         public ReactiveProperty<double> PageNumberPosY { get; } = new ReactiveProperty<double>(0);
-        public ReactiveProperty<double> PageNumberFontSize { get; } = new ReactiveProperty<double>(0);
+        public ReactiveProperty<double> PageNumberFontSize { get; } = new ReactiveProperty<double>(8.0);
 
 
         public ReactiveProperty<double> BgmVolume { get; } = new ReactiveProperty<double>();
@@ -370,6 +375,8 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<string> BgmPath { get; } = new ReactiveProperty<string>();
 
+        public DoublePropertyViewModel CharacterVerticalOffset { get; } = new("顔画像の縦オフセット", -500, 0);
+        public DoublePropertyViewModel CharacterHorizontalOffset { get; } = new("顔画像の右オフセット", -500, 500);
         public ReactiveProperty<PathViewModel> ImageMouthAPath { get; set; } = new PathPropertyViewModel(nameof(ImageMouthAPath));
         public ReactiveProperty<PathViewModel> ImageMouthIPath { get; set; } = new PathPropertyViewModel(nameof(ImageMouthIPath));
         public ReactiveProperty<PathViewModel> ImageMouthUPath { get; set; } = new PathPropertyViewModel(nameof(ImageMouthUPath));
@@ -531,6 +538,8 @@ namespace PresentationMovieMaker.ViewModels
             NarrationVolume.Value = dataModel.NarrationVolume;
             PagingIntervalMilliseconds.Value = dataModel.PagingIntervalMilliseconds;
 
+            CharacterVerticalOffset.Value = dataModel.CharacterVerticalOffset;
+            CharacterHorizontalOffset.Value = dataModel.CharacterHorizontalOffset;
             ImageMouthAPath.Value.Path.Value = dataModel.ImageMouthAPath;
             ImageMouthIPath.Value.Path.Value = dataModel.ImageMouthIPath;
             ImageMouthUPath.Value.Path.Value = dataModel.ImageMouthUPath;
@@ -570,6 +579,8 @@ namespace PresentationMovieMaker.ViewModels
             serial.CaptionFontSize = CaptionFontSize.Value;
             serial.NarrationVolume = NarrationVolume.Value;
 
+            serial.CharacterHorizontalOffset = CharacterHorizontalOffset.Value;
+            serial.CharacterVerticalOffset = CharacterVerticalOffset.Value;
             serial.ImageMouthAPath = ImageMouthAPath.Value.ActualPath.Value;
             serial.ImageMouthIPath = ImageMouthIPath.Value.ActualPath.Value;
             serial.ImageMouthUPath = ImageMouthUPath.Value.ActualPath.Value;

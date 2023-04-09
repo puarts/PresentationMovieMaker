@@ -16,6 +16,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace PresentationMovieMaker.ViewModels
@@ -192,6 +194,21 @@ namespace PresentationMovieMaker.ViewModels
                     }
                 }
             });
+
+            Subscribe(ImagePath, value =>
+            {
+                if (!File.Exists(value.ActualPath.Value))
+                {
+                    Image.Value = null;
+                    return;
+                }
+
+                BitmapImage bi3 = new BitmapImage();
+                bi3.BeginInit();
+                bi3.UriSource = new Uri(value.ActualPath.Value);
+                bi3.EndInit();
+                Image.Value = bi3;
+            });
         }
 
         public PageInfoViewModel(int pageNumber, MovieSettingViewModel parent)
@@ -284,6 +301,8 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<int> PageNumber { get; } = new ReactiveProperty<int>();
 
         public ReactiveProperty<PathViewModel> ImagePath { get; } = new ReactiveProperty<PathViewModel>(new PathViewModel());
+
+        public ReactiveProperty<ImageSource?> Image { get; } = new();
 
         public ReactiveProperty<double> RotationAngle { get; } = new ReactiveProperty<double>(0);
 

@@ -43,6 +43,9 @@ namespace PresentationMovieMaker.DataModels
         public string SlideBackgroundImagePath { get; set; } = string.Empty;
 
         // キャラクター設定
+
+        public double CharacterVerticalOffset { get; set; } = 0.0;
+        public double CharacterHorizontalOffset { get; set; } = 0.0;
         public string ImageMouthAPath { get; set; } = string.Empty;
         public string ImageMouthIPath { get; set; } = string.Empty;
         public string ImageMouthUPath { get; set; } = string.Empty;

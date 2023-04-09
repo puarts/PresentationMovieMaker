@@ -39,13 +39,23 @@ namespace PresentationMovieMaker.Views
         {
             if (values[0] == DependencyProperty.UnsetValue)
             {
-                return 0.0;
+                return 1.0;
             }
 
             double virtualCanvasWidth = (double)values[0];
+            if (virtualCanvasWidth < 0.0001)
+            {
+                return 1.0;
+            }
+
             double actualCanvasWidth = (double)values[1];
             double faceWidth = (double)values[2];
-            return faceWidth * (actualCanvasWidth / virtualCanvasWidth);
+            var result = faceWidth * (actualCanvasWidth / virtualCanvasWidth);
+            if (result < 0.0001)
+            {
+                return 1.0;
+            }
+            return result;
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)

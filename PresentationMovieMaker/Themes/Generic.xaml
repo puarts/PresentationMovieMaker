@@ -4,7 +4,12 @@
     xmlns:local="clr-namespace:PresentationMovieMaker.Views"
     xmlns:view="clr-namespace:PresentationMovieMaker.Views"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels">
-
+    <Style TargetType="TextBox">
+        <Setter Property="Margin" Value="3,0,3,3" />
+    </Style>
+    <Style TargetType="Button">
+        <Setter Property="Margin" Value="3,0,3,3" />
+    </Style>
     <Style TargetType="{x:Type view:SliderBox}">
         <Setter Property="Template">
             <Setter.Value>
@@ -48,7 +53,11 @@
                 <ColumnDefinition Width="300" />
             </Grid.ColumnDefinitions>
             <Label Content="{Binding Name}" />
-            <view:SliderBox Grid.Column="1" Value="{Binding Value}" />
+            <view:SliderBox
+                Grid.Column="1"
+                Maximum="{Binding Maximum}"
+                Minimum="{Binding Minimum}"
+                Value="{Binding Value}" />
         </Grid>
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:BoolPropertyViewModel}">

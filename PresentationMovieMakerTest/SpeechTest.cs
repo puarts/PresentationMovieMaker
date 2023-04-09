@@ -15,14 +15,21 @@ namespace PresentationMovieMakerTest
     public class SpeechTest
     {
         [TestMethod]
-        public void VoiceVoxTest()
+        public void VoiceVoxEnumerateSpeakersTest()
         {
             var speakers = VoicevoxUtility.EnumerateSpeakers().ToArray();
-            foreach (var style in speakers.SelectMany(x => x.Styles))
+            foreach (var speaker in speakers)
             {
-                Console.WriteLine($"{style.Name}: {style.Id}");
+                foreach (var style in speaker.Styles!)
+                {
+                    Console.WriteLine($"{speaker.Name}({style.Name}): {style.Id}");
+                }
             }
+        }
 
+        [TestMethod]
+        public void VoiceVoxTest()
+        {
             // ’¼ÚÄ¶
             VoicevoxUtility.Speek("‚±‚ê‚Í’¼ÚÄ¶‚·‚éƒeƒXƒg‚Å‚·", 39).Wait();
 
