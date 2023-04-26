@@ -27,6 +27,11 @@ namespace PresentationMovieMaker.ValueConverters
                 return null;
             }
 
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
             using (var fs = new FileStream(path, FileMode.Open))
             {
                 var decoder = BitmapDecoder.Create(

@@ -9,6 +9,8 @@ using System.Linq;
 using System.Reactive.Disposables;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace PresentationMovieMaker.ViewModels
@@ -34,6 +36,23 @@ namespace PresentationMovieMaker.ViewModels
                     Path.Value = dialog.FileName;
                 }
             });
+            Subscribe(DropCommand, e =>
+            {
+                if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    string[] filenames = (string[])e.Data.GetData(DataFormats.FileDrop); // ドロップしたファイル名を全部取得する。
+                    if (filenames.Length > 0)
+                    {
+                        var filename = filenames.First();
+                        Path.Value = filename;
+                    }
+                }
+            });
+            Subscribe(PreviewDragOverCommand, e =>
+            {
+                e.Effects = DragDropEffects.Copy;
+                e.Handled = e.Data.GetDataPresent(DataFormats.FileDrop);
+            });
         }
 
         public bool IsEmpty()
@@ -51,7 +70,10 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<string> ActualPath { get; } = new ReactiveProperty<string>();
 
         public ReactiveCommand OpenPathCommand { get; } = new ReactiveCommand();
+        public ReactiveCommand<DragEventArgs> DropCommand { get; } = new ReactiveCommand<DragEventArgs>();
+        public ReactiveCommand<DragEventArgs> PreviewDragOverCommand { get; } = new ReactiveCommand<DragEventArgs>();
 
+        
         private void UpdatePathAndActualPath()
         {
             UpdatePath();

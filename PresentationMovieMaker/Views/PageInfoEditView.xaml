@@ -127,18 +127,13 @@
                             <Button Width="20" Command="{Binding MoveNarrationInfoUpCommand}">↑</Button>
                             <Button Width="20" Command="{Binding MoveNarrationInfoDownCommand}">↓</Button>
                         </StackPanel>
-                        <ListBox ItemsSource="{Binding SubImagePaths}">
-                            <ListBox.Template>
-                                <ControlTemplate>
-                                    <ItemsPresenter />
-                                </ControlTemplate>
-                            </ListBox.Template>
-                            <ListBox.ItemTemplate>
+                        <ItemsControl ItemsSource="{Binding SubImagePaths}">
+                            <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <ContentPresenter Content="{Binding .}" />
                                 </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                         <Label>スライド内画像マージン</Label>
                         <local:SliderBox
                             Interval="1"
@@ -146,9 +141,9 @@
                             Minimum="0"
                             Value="{Binding SubImageMargin.Value}" />
                         <Label>BGMパス:</Label>
-                        <local:PathView DataContext="{Binding BgmPath.Value}" />
+                        <ContentPresenter Content="{Binding BgmPath.Value}" />
                         <Label>画像、動画パス:</Label>
-                        <local:PathView DataContext="{Binding ImagePath.Value}" />
+                        <ContentPresenter Content="{Binding ImagePath.Value}" />
                         <Label>画像、動画の回転:</Label>
                         <local:SliderBox
                             Interval="1"
@@ -183,6 +178,7 @@
                             Maximum="1"
                             Minimum="0"
                             Value="{Binding BgmVolume.Value}" />
+                        <CheckBox IsChecked="{Binding IsFaceVisible.Value}">顔の表示</CheckBox>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

@@ -155,7 +155,7 @@ namespace PresentationMovieMaker.ViewModels
                             });
                             //while (!this.IsMediaLoaded)
                             //{
-                            //    Thread.Sleep(30);
+                            //    this.Sleep(30);
                             //}
                         }
 
@@ -171,7 +171,7 @@ namespace PresentationMovieMaker.ViewModels
             if (startPageIndex == 0)
             {
                 // 録画開始しやすいように少し間を空ける
-                Thread.Sleep(5000);
+                this.Sleep(5000);
             }
 
             // BGM の開始
@@ -188,7 +188,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
             });
 
-            Thread.Sleep(500);
+            this.Sleep(500);
 
             var pageCount = MovieSetting.PageInfos.Count;
             for (; _pageIndex < pageCount; ++_pageIndex)
@@ -244,7 +244,7 @@ namespace PresentationMovieMaker.ViewModels
                             {
                                 //while (!this.IsMediaLoaded)
                                 //{
-                                //    Thread.Sleep(30);
+                                //    this.Sleep(30);
                                 //}
 
                                 if (MediaDucration.HasTimeSpan)
@@ -270,7 +270,7 @@ namespace PresentationMovieMaker.ViewModels
                                 //else
                                 //{
                                 //}
-                                //Thread.Sleep(100);
+                                //this.Sleep(100);
                                 //PlayWindow?.ResetVisibleChangedFlag();
                                 //if (!bufferVisibilities[currentBufferIndex].Value)
                                 //{
@@ -302,10 +302,10 @@ namespace PresentationMovieMaker.ViewModels
                                 }
 
                                 // ロード後にちょっとスリープを入れないとガビガビしてしまう
-                                //Thread.Sleep(100);
+                                //this.Sleep(100);
                                 //bufferVisibilities[nextBufferIndex].Value = false;
 
-                                //Thread.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
+                                //this.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
 
                                 linkedCt.ThrowIfCancellationRequested();
 
@@ -337,7 +337,9 @@ namespace PresentationMovieMaker.ViewModels
                                     var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageType);
                                     if (!audioPath.IsEmpty())
                                     {
-                                        bool isParallel = pageType == PageType.TitleAndBody;
+                                        bool isParallel = pageType == PageType.TitleAndBody
+                                            // ナレーションがあったら間を置かない
+                                            || (pageType == PageType.SectionHeader && pageInfo.NarrationInfos.Any());
                                         if (isParallel)
                                         {
                                             Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
@@ -402,14 +404,14 @@ namespace PresentationMovieMaker.ViewModels
                                 // 動画の場合は再生完了を待つ
                                 while (stopwatch.Elapsed < mediaDuration)
                                 {
-                                    Thread.Sleep(100);
+                                    this.Sleep(10);
                                     linkedCt.ThrowIfCancellationRequested();
                                 }
                                 stopwatch.Stop();
 
                                 linkedCt.ThrowIfCancellationRequested();
 
-                                Thread.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
+                                this.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
                             }
                             catch (Exception exception)
                             {
@@ -479,6 +481,13 @@ namespace PresentationMovieMaker.ViewModels
             }
 
             task.Wait();
+        }
+
+        internal void Sleep(int milliseconds)
+        {
+            if (milliseconds == 0) return;
+            WriteLogLine($"Sleep {milliseconds} ms");
+            Thread.Sleep(milliseconds);
         }
 
         private void SetPageInfoByPageType(PageType pageType)

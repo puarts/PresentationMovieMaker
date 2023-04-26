@@ -237,6 +237,7 @@ namespace PresentationMovieMaker.ViewModels
             PageType.Value = dataModel.PageType;
             Description.Value = dataModel.Description;
             SubImageMargin.Value = dataModel.SubImageMargin;
+            IsFaceVisible.Value = dataModel.IsFaceVisible;
 
             NarrationInfos.Clear();
             if (dataModel.NarrationInfos.Any())
@@ -272,6 +273,8 @@ namespace PresentationMovieMaker.ViewModels
                 SetProperty(ref _isSelected, value);
             }
         }
+
+        public ReactiveProperty<bool> IsFaceVisible { get; } = new(true);
 
         public ReactiveProperty<PageType> PageType { get; } = new ReactiveProperty<PageType>();
 
@@ -345,6 +348,7 @@ namespace PresentationMovieMaker.ViewModels
             serial.Description = Description.Value;
             serial.PageType = PageType.Value;
             serial.SubImageMargin = SubImageMargin.Value;
+            serial.IsFaceVisible = IsFaceVisible.Value;
             return serial;
         }
 

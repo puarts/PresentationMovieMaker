@@ -221,6 +221,11 @@ namespace PresentationMovieMaker.Utilities
         {
             var synth = GetSynthesizer();
 
+            if (synth.State == System.Speech.Synthesis.SynthesizerState.Speaking)
+            {
+                return synth.GetCurrentlySpokenPrompt();
+            }
+
             // Configure the audio output.   
             synth.SetOutputToDefaultAudioDevice();
 

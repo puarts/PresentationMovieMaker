@@ -16,6 +16,11 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <Style x:Key="faceImageStyle" TargetType="{x:Type Image}">
+                <Setter Property="Visibility">
+                    <Setter.Value>
+                        <Binding Converter="{x:Static local:BoolToVisibilityConverter.Instance}" Path="CurrentPage.Value.IsFaceVisible.Value" />
+                    </Setter.Value>
+                </Setter>
                 <Setter Property="Width">
                     <Setter.Value>
                         <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">
@@ -58,7 +63,7 @@
             <Image
                 Width="{Binding ActualWidth, ElementName=mainCanvas}"
                 Height="{Binding ActualHeight, ElementName=mainCanvas}"
-                Source="{Binding SlideBackgroundImage.Value}" />
+                Source="{Binding MovieSetting.SlideBackgroundImage.Value}" />
 
             <!--  スライドメイン画像  -->
             <Image
@@ -309,7 +314,7 @@
                         FontWeight="Bold"
                         Foreground="White"
                         Text="{Binding CurrentText.Value}"
-                        TextAlignment="Center"
+                        TextAlignment="Left"
                         TextWrapping="Wrap">
                         <TextBlock.FontSize>
                             <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">

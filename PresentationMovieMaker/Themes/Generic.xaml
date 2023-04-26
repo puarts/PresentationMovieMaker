@@ -33,7 +33,29 @@
     </Style>
 
     <DataTemplate DataType="{x:Type vm:PathViewModel}">
-        <local:PathView DataContext="{Binding .}" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="40" />
+            </Grid.ColumnDefinitions>
+            <TextBox
+                MinWidth="100"
+                local:DropBehavior.DropEvent="{Binding DropCommand}"
+                local:PreviewDragOverBehavior.PreviewDragOverEvent="{Binding PreviewDragOverCommand}"
+                AllowDrop="True"
+                Text="{Binding Path.Value}" />
+            <Button Grid.Column="1" Command="{Binding OpenPathCommand}">開く..</Button>
+            <TextBox
+                Grid.Row="1"
+                Grid.ColumnSpan="2"
+                Background="LightGray"
+                IsReadOnly="True"
+                Text="{Binding ActualPath.Value}" />
+        </Grid>
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type vm:PathPropertyViewModel}">
@@ -43,7 +65,7 @@
                 <ColumnDefinition Width="300" />
             </Grid.ColumnDefinitions>
             <Label Content="{Binding Name}" />
-            <local:PathView Grid.Column="1" DataContext="{Binding Value}" />
+            <ContentPresenter Grid.Column="1" Content="{Binding Value}" />
         </Grid>
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:DoublePropertyViewModel}">
@@ -169,7 +191,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <view:PathView MinWidth="300" DataContext="{Binding .}" />
+                            <ContentPresenter Content="{Binding}" />
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

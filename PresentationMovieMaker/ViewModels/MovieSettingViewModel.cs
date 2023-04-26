@@ -13,6 +13,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Imaging;
 
 namespace PresentationMovieMaker.ViewModels
 {
@@ -297,6 +298,10 @@ namespace PresentationMovieMaker.ViewModels
             SelectedPageInfo.Subscribe(selectedPageInfo =>
             {
                 IsPageInfoSelected.Value = selectedPageInfo != null;
+                if (Parent is not null)
+                {
+                    Parent.CurrentPage.Value = selectedPageInfo;
+                }
             });
 
             Subscribe(SelectionChangedCommand, args =>
@@ -339,7 +344,10 @@ namespace PresentationMovieMaker.ViewModels
                 Parent?.SyncBgmVolumeFromSetting();
 
             });
-
+            Subscribe(SlideBackgroundImagePath.Value.ActualPath, value =>
+            {
+                UpdateSlideBackground(value);
+            });
 
             VoiceName.Value = VoiceNames.First();
         }
@@ -389,6 +397,9 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<PathViewModel> ImageFaceBasePath { get; set; } = new PathPropertyViewModel(nameof(ImageFaceBasePath));
 
         public ReactiveProperty<PathViewModel> SlideBackgroundImagePath { get; set; } = new PathPropertyViewModel(nameof(SlideBackgroundImagePath));
+
+        public ReactiveProperty<BitmapSource> SlideBackgroundImage { get; } = new ReactiveProperty<BitmapSource>();
+
 
         public ReactiveProperty<PathViewModel> DefaultPageTurningAudioPath { get; set; } = new PathPropertyViewModel(nameof(DefaultPageTurningAudioPath));
 
@@ -641,6 +652,15 @@ namespace PresentationMovieMaker.ViewModels
             var newPage = new PageInfoViewModel(this);
             AddPageInfos(new[] { newPage });
             return newPage;
+        }
+        private void UpdateSlideBackground(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            SlideBackgroundImage.Value = ImageUtility.ConvertBitmapToBitmapSource(new System.Drawing.Bitmap(path));
         }
     }
 }

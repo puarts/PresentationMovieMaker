@@ -7,7 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
     Title="PlayWindow"
-    Width="{Binding PlayWindowWidth.Value, Mode=TwoWay}"
+    Width="{Binding PlayWindowWidth.Value, Mode=OneWay}"
     Height="{Binding PlayWindowHeight.Value, Mode=OneWay}"
     d:DataContext="{d:DesignInstance vm:MainWindowViewModel}"
     AllowsTransparency="True"

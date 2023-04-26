@@ -57,5 +57,7 @@ namespace PresentationMovieMaker.DataModels
 
         public double SubImageMargin { get; set; } = 30.0;
 
+        public bool IsFaceVisible { get; set; } = true;
+
     }
 }

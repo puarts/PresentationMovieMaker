@@ -328,10 +328,6 @@ namespace PresentationMovieMaker.ViewModels
                 SyncCaptionMargin();
             });
 
-            Subscribe(MovieSetting.SlideBackgroundImagePath.Value.ActualPath, value =>
-            {
-                UpdateSlideBackground(value);
-            });
             Subscribe(MovieSetting.FaceImageWidth, value =>
             {
                 ActualFaceImageWidth.Value = value;
@@ -341,10 +337,12 @@ namespace PresentationMovieMaker.ViewModels
             {
                 UpdatePageNumberPosX();
                 UpdateCaptionWidth();
+                PreviewWindowWidth.Value = value / 4;
             });
             Subscribe(PlayWindowHeight, value =>
             {
                 UpdatePageNumberPosY();
+                PreviewWindowHeight.Value = value / 4;
             });
             Subscribe(CaptionMarginLeft, value =>
             {
@@ -400,6 +398,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
             });
         }
+
         private void UpdatePlayWindowWidth()
         {
             var bgPath = MovieSetting.SlideBackgroundImagePath.Value.ActualPath.Value;
@@ -586,7 +585,7 @@ namespace PresentationMovieMaker.ViewModels
                 float increment = targetVolume / samples;
                 for (int i = 0; i < samples; ++i)
                 {
-                    Thread.Sleep(sleepMilliseconds);
+                    this.Sleep(sleepMilliseconds);
 
                     float nextVolume = _bgmFileReader!.Volume + increment;
                     _bgmFileReader.Volume = nextVolume > targetVolume ? targetVolume : nextVolume;
@@ -640,7 +639,7 @@ namespace PresentationMovieMaker.ViewModels
         {
             while (IsPaused.Value)
             {
-                Thread.Sleep(100);
+                this.Sleep(100);
             }
         }
 
@@ -825,6 +824,7 @@ namespace PresentationMovieMaker.ViewModels
         {
             ActualPageNumberPosY.Value = MovieSetting.PageNumberPosY.Value * PlayWindowWidth.Value;
         }
+
         public ReactiveProperty<BitmapSource> BodyBitmap { get; } = new ReactiveProperty<BitmapSource>();
         public ReactiveProperty<BitmapSource> FaceBitmap { get; } = new ReactiveProperty<BitmapSource>();
         public ReactiveProperty<BitmapSource> EyeBitmap { get; } = new ReactiveProperty<BitmapSource>();
@@ -895,6 +895,8 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveCommand SaveSlideCacheCommand { get; } = new ReactiveCommand();
         public ReactiveCommand RelocateNarrationInfoCommand { get; } = new ReactiveCommand();
 
+        public ReactiveProperty<double> PreviewWindowWidth { get; } = new ReactiveProperty<double>(320);
+        public ReactiveProperty<double> PreviewWindowHeight { get; } = new ReactiveProperty<double>(240);
         public ReactiveProperty<double> PlayWindowWidth { get; } = new ReactiveProperty<double>(640);
         public ReactiveProperty<double> PlayWindowHeight { get; } = new ReactiveProperty<double>(480);
 
@@ -916,8 +918,6 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<int> SlideSubImageCount { get; } = new();
         public ReactiveProperty<double> SlideSubImageMaxHeight { get; } = new ReactiveProperty<double>(500);
         public ReactiveProperty<double> SlideSubImageMargin { get; } = new ReactiveProperty<double>(30);
-
-        public ReactiveProperty<BitmapSource> SlideBackgroundImage { get; } = new ReactiveProperty<BitmapSource>();
 
         public ReactiveProperty<double> BlackOpacity { get; } = new ReactiveProperty<double>(0.0);
 
@@ -1050,16 +1050,6 @@ namespace PresentationMovieMaker.ViewModels
 
             MovieSetting.DeepCopyFrom(deserialized);
             SetupFace();
-        }
-
-        private void UpdateSlideBackground(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-            {
-                return;
-            }
-
-            SlideBackgroundImage.Value = CreateBitmapSource(path);
         }
 
         private void SetupFace()

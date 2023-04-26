@@ -32,15 +32,16 @@
             <RowDefinition Height="50" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="5" />
+            <ColumnDefinition Width="auto" />
         </Grid.ColumnDefinitions>
-        <Menu Grid.ColumnSpan="2">
+        <Menu Grid.ColumnSpan="3">
             <MenuItem Header="ファイル(_F)">
                 <MenuItem Command="{Binding CreateNewSettingCommand}" Header="新規作成" />
             </MenuItem>
         </Menu>
-        <TabControl Grid.Row="1">
+        <TabControl Grid.Row="1" Grid.Column="0">
             <TabItem Header="基本設定">
                 <StackPanel>
                     <TextBlock>設定ファイル:</TextBlock>
@@ -108,33 +109,42 @@
             </TabItem>
         </TabControl>
 
-        <local:SlideView
+        <GridSplitter
             Grid.Row="1"
             Grid.Column="1"
-            MaxHeight="400"
+            Width="5"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Stretch"
+            ShowsPreview="True" />
+
+        <local:SlideView
+            Grid.Row="1"
+            Grid.Column="2"
+            Width="{Binding PreviewWindowWidth.Value}"
+            Height="{Binding PreviewWindowHeight.Value}"
             DataContext="{Binding .}" />
 
         <GridSplitter
             Grid.Row="1"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             Height="5"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
             ShowsPreview="True" />
         <local:MovieSettingView
             Grid.Row="2"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             DataContext="{Binding MovieSetting}" />
         <GridSplitter
             Grid.Row="3"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             Height="5"
             HorizontalAlignment="Stretch"
             VerticalAlignment="Bottom"
             ShowsPreview="True" />
         <TextBox
             Grid.Row="4"
-            Grid.ColumnSpan="2"
+            Grid.ColumnSpan="3"
             AcceptsReturn="True"
             Text="{Binding Log.Value}"
             TextChanged="TextBox_TextChanged" />
