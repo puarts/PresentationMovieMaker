@@ -13,6 +13,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Speech.Synthesis;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -98,6 +99,14 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 SubImagePaths.RemoveAt(SubImagePaths.Count - 1);
+            });
+
+            Subscribe(IsEnabled, value =>
+            {
+                foreach (var info in EnumerateSelectedPageInfosWithoutMyself())
+                {
+                    info.IsEnabled.Value = value;
+                }
             });
 
             Subscribe(AddNarrationInfoCommand, () =>
@@ -197,17 +206,25 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(ImagePath, value =>
             {
-                if (!File.Exists(value.ActualPath.Value))
+                var path = value.ActualPath.Value;
+                if (!File.Exists(path) || !ImageUtility.IsImageFile(path))
                 {
                     Image.Value = null;
                     return;
                 }
 
-                BitmapImage bi3 = new BitmapImage();
+                BitmapImage bi3 = new();
                 bi3.BeginInit();
-                bi3.UriSource = new Uri(value.ActualPath.Value);
+                bi3.UriSource = new Uri(path);
                 bi3.EndInit();
                 Image.Value = bi3;
+            });
+
+            Subscribe(ForceDisplayAllDescription, value =>
+            {
+                if (Parent?.Parent?.CurrentPage.Value != this) return;
+
+                Parent.Parent.CurrentPageDescription.Value = GetDescription();
             });
         }
 
@@ -226,6 +243,7 @@ namespace PresentationMovieMaker.ViewModels
         public void DeepCopyFrom(PageInfo dataModel)
         {
             ImagePath.Value = new PathViewModel(dataModel.ImagePath);
+            VideoPath.Value = new PathViewModel(dataModel.VideoPath);
             BgmPath.Value = new PathViewModel(dataModel.BgmPath);
             BgmVolume.Value = dataModel.BgmVolume;
             OverwritesBgmVolume.Value = dataModel.OverwritesBgmVolume;
@@ -238,6 +256,7 @@ namespace PresentationMovieMaker.ViewModels
             Description.Value = dataModel.Description;
             SubImageMargin.Value = dataModel.SubImageMargin;
             IsFaceVisible.Value = dataModel.IsFaceVisible;
+            IsEnabled.Value = dataModel.IsEnabled;
 
             NarrationInfos.Clear();
             if (dataModel.NarrationInfos.Any())
@@ -274,12 +293,14 @@ namespace PresentationMovieMaker.ViewModels
             }
         }
 
+        public ReactiveProperty<bool> IsEnabled { get; } = new(true);
         public ReactiveProperty<bool> IsFaceVisible { get; } = new(true);
 
         public ReactiveProperty<PageType> PageType { get; } = new ReactiveProperty<PageType>();
 
         public ReactiveProperty<string> Title { get; } = new ReactiveProperty<string>();
         public ReactiveProperty<string> Description { get; } = new ReactiveProperty<string>();
+        public ReactiveProperty<bool> ForceDisplayAllDescription { get; } = new ReactiveProperty<bool>();
 
         public ReactiveProperty<double> MediaVolume { get; } = new ReactiveProperty<double>(1.0);
 
@@ -304,6 +325,7 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<int> PageNumber { get; } = new ReactiveProperty<int>();
 
         public ReactiveProperty<PathViewModel> ImagePath { get; } = new ReactiveProperty<PathViewModel>(new PathViewModel());
+        public ReactiveProperty<PathViewModel> VideoPath { get; } = new ReactiveProperty<PathViewModel>(new PathViewModel());
 
         public ReactiveProperty<ImageSource?> Image { get; } = new();
 
@@ -330,17 +352,52 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<double> SubImageMargin { get; } = new ReactiveProperty<double>();
 
+        public string GetDescription(string? mark = null)
+        {
+            var desc = this.Description.Value;
+
+            // [1] [2] みたいなやつを抽出したい
+            string pattern = @"\[(\d+)\]";
+            var matches = Regex.Matches(desc, pattern);
+            if (!matches.Any()) return desc;
+
+            if (ForceDisplayAllDescription.Value)
+            {
+                return TextUtility.RemoveMatchesString(desc, matches);
+            }
+
+            if (string.IsNullOrEmpty(mark))
+            {
+                var match = matches.First();
+                int index = desc.IndexOf(match.Value);
+                return desc[..index];
+            }
+            else
+            {
+                var matchList = matches.ToList();
+                var matchIndex = matchList.FindIndex(0, x => x.Value == mark);
+                string result = matchIndex + 1 >= matches.Count
+                    ? TextUtility.RemoveMatchesString(desc, matches)
+                    : desc[..desc.IndexOf(matchList[matchIndex + 1].Value)];
+                return TextUtility.RemoveMatchesString(result, matches);
+            }
+        }
+
+
 
         public PageInfo ToSerializable()
         {
-            var serial = new PageInfo();
-            serial.ImagePath = ImagePath.Value.Path.Value;
-            serial.BgmPath = BgmPath.Value?.Path.Value ?? String.Empty;
-            serial.BgmVolume = BgmVolume.Value;
-            serial.OverwritesBgmVolume = OverwritesBgmVolume.Value;
-            serial.BgmFadeMiliseconds = BgmFadeMiliseconds.Value;
-            serial.RotationAngle = RotationAngle.Value;
-            serial.MediaVolume = MediaVolume.Value;
+            var serial = new PageInfo
+            {
+                ImagePath = ImagePath.Value.Path.Value,
+                VideoPath = VideoPath.Value.Path.Value,
+                BgmPath = BgmPath.Value?.Path.Value ?? String.Empty,
+                BgmVolume = BgmVolume.Value,
+                OverwritesBgmVolume = OverwritesBgmVolume.Value,
+                BgmFadeMiliseconds = BgmFadeMiliseconds.Value,
+                RotationAngle = RotationAngle.Value,
+                MediaVolume = MediaVolume.Value
+            };
             serial.NarrationInfos.AddRange(NarrationInfos.Select(x => x.ToSerializable()));
             serial.SubImagePaths.AddRange(SubImagePaths.Select(x => x.ActualPath.Value));
             serial.PagingIntervalMilliseconds = PagingIntervalMilliseconds.Value;
@@ -349,12 +406,13 @@ namespace PresentationMovieMaker.ViewModels
             serial.PageType = PageType.Value;
             serial.SubImageMargin = SubImageMargin.Value;
             serial.IsFaceVisible = IsFaceVisible.Value;
+            serial.IsEnabled = IsEnabled.Value;
             return serial;
         }
 
         public void UpdateDuration()
         {
-            TimeSpan duration = new TimeSpan();
+            TimeSpan duration = new();
             foreach (var narrationInfo in NarrationInfos)
             {
                 duration += narrationInfo.TotalDuration.Value;

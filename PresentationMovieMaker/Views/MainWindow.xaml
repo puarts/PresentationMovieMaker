@@ -39,25 +39,14 @@
         <Menu Grid.ColumnSpan="3">
             <MenuItem Header="ファイル(_F)">
                 <MenuItem Command="{Binding CreateNewSettingCommand}" Header="新規作成" />
+                <MenuItem Command="{Binding ExportNarrationCommand}" Header="ナレーションエクスポート" />
             </MenuItem>
         </Menu>
         <TabControl Grid.Row="1" Grid.Column="0">
             <TabItem Header="基本設定">
                 <StackPanel>
-                    <TextBlock>設定ファイル:</TextBlock>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="80" />
-                            <ColumnDefinition Width="80" />
-                        </Grid.ColumnDefinitions>
-                        <TextBox
-                            AllowDrop="True"
-                            Drop="TextBox_Drop"
-                            Text="{Binding SettingPath.Value}" />
-                        <Button Grid.Column="1" Command="{Binding OpenSettingFolderCommand}">フォルダ開く</Button>
-                        <Button Grid.Column="2" Command="{Binding OpenSettingCommand}">ファイル開く</Button>
-                    </Grid>
+                    <TextBlock>設定:</TextBlock>
+                    <ContentPresenter Content="{Binding SettingPath}" />
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition />
@@ -90,6 +79,11 @@
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding HideCaption.Value}">キャプション非表示</CheckBox>
                     </StackPanel>
+                    <TextBlock>
+                        <Run Text="{Binding PlayWindowWidth.Value, Mode=OneWay}" />
+                        <Run>×</Run>
+                        <Run Text="{Binding PlayWindowHeight.Value, Mode=OneWay}" />
+                    </TextBlock>
                 </StackPanel>
             </TabItem>
             <TabItem Header="詳細設定">

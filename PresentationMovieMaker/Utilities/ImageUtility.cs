@@ -17,9 +17,22 @@ namespace PresentationMovieMaker.Utilities
         [System.Runtime.InteropServices.DllImport("gdi32.dll")]
         private static extern bool DeleteObject(IntPtr hObject);
 
+        public static bool IsImageFile(string path)
+        {
+            switch (Path.GetExtension(path))
+            {
+                case ".png":
+                case ".jpg":
+                case ".bmp":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public static (int Width, int Height) GetImageSize(string path)
         {
-            Bitmap img = new Bitmap(path);
+            Bitmap img = new(path);
             return (img.Width, img.Height);
         }
 

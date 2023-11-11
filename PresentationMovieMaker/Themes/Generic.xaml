@@ -4,6 +4,7 @@
     xmlns:local="clr-namespace:PresentationMovieMaker.Views"
     xmlns:view="clr-namespace:PresentationMovieMaker.Views"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels">
+
     <Style TargetType="TextBox">
         <Setter Property="Margin" Value="3,0,3,3" />
     </Style>
@@ -52,7 +53,7 @@
             <TextBox
                 Grid.Row="1"
                 Grid.ColumnSpan="2"
-                Background="LightGray"
+                Background="#aaa"
                 IsReadOnly="True"
                 Text="{Binding ActualPath.Value}" />
         </Grid>
@@ -69,6 +70,21 @@
         </Grid>
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:DoublePropertyViewModel}">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="150" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+            <Label Content="{Binding Name}" />
+            <view:SliderBox
+                Grid.Column="1"
+                Maximum="{Binding Maximum}"
+                Minimum="{Binding Minimum}"
+                Value="{Binding Value}" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:IntPropertyViewModel}">
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="150" />
@@ -100,7 +116,7 @@
             <TextBox
                 MinHeight="150"
                 AcceptsReturn="True"
-                Text="{Binding SpeechText.Value}"
+                Text="{Binding SpeechText.Value, UpdateSourceTrigger=PropertyChanged}"
                 TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal">
                 <TextBlock Padding="0,0,10,0" Text="{Binding TotalCharCount.Value, Converter={x:Static view:AddSuffixConverter.Instance}, ConverterParameter='文字'}" />
@@ -205,5 +221,4 @@
             <CheckBox IsChecked="{Binding IsAudioParallel.Value}">オーディオ並列再生</CheckBox>
         </StackPanel>
     </DataTemplate>
-
 </ResourceDictionary>

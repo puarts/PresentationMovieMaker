@@ -58,10 +58,15 @@ namespace PresentationMovieMaker.ViewModels
 
     public class IntPropertyViewModel : PropertyViewModel<int>
     {
-        public IntPropertyViewModel(string name)
+        public IntPropertyViewModel(string name, int min, int max)
             : base(name)
         {
+            Minimum = min;
+            Maximum = max;
         }
+        public int Minimum { get; } = 0;
+
+        public int Maximum { get; } = 1000;
     }
 
     public class DoublePropertyViewModel : PropertyViewModel<double>

@@ -19,7 +19,7 @@ namespace PresentationMovieMaker.Views
             return ConvertToBrush(color);
         }
 
-        private Brush ConvertToBrush(Color color)
+        private static Brush ConvertToBrush(Color color)
         {
             return new SolidColorBrush(color);
         }

@@ -25,6 +25,7 @@ using Microsoft.CognitiveServices.Speech;
 using System.Speech.Recognition;
 using System.Drawing;
 using System.Reactive.Linq;
+using System.Text.RegularExpressions;
 
 namespace PresentationMovieMaker.ViewModels
 {
@@ -37,10 +38,10 @@ namespace PresentationMovieMaker.ViewModels
     public partial class MainWindowViewModel : CompositeDisposableBase, ILogger
     {
         private AudioFileReader? _bgmFileReader = null;
-        private WaveOutEvent _bgmOutputDevice = new WaveOutEvent();
-        private WaveOutEvent _soundEffectOutputDevice = new WaveOutEvent();
-        private WaveOutEvent _outputDevice = new WaveOutEvent();
-        private Dictionary<string, AudioFileReader> _soundEffectFileReaders = new();
+        private readonly WaveOutEvent _bgmOutputDevice = new();
+        private readonly WaveOutEvent _soundEffectOutputDevice = new();
+        private readonly WaveOutEvent _outputDevice = new();
+        private readonly Dictionary<string, AudioFileReader> _soundEffectFileReaders = new();
         private int _pageIndex = 0;
 
         private CancellationTokenSource? _cancellationTokenSource;
@@ -48,11 +49,11 @@ namespace PresentationMovieMaker.ViewModels
         private CancellationTokenSource? _goBackToPreviousPageCancellationTokenSource;
         private Task? _playTask = null;
         private Task? _playPageTask = null;
-        private Dictionary<char, BitmapSource> _pronuunciationBitmaps = new Dictionary<char, BitmapSource>();
-        private Dictionary<EyePattern, BitmapSource> _eyeBitmaps = new();
-        private TextConverter _textConverter = new TextConverter();
-        private Utilities.SpeechRecognizer _recognizer = new Utilities.SpeechRecognizer();
-        Random _randGenerator = new Random();
+        private readonly Dictionary<char, BitmapSource> _pronuunciationBitmaps = new();
+        private readonly Dictionary<EyePattern, BitmapSource> _eyeBitmaps = new();
+        private readonly TextConverter _textConverter = new();
+        private readonly Utilities.SpeechRecognizer _recognizer = new();
+        readonly Random _randGenerator = new();
 
         public MainWindowViewModel()
         {
@@ -102,8 +103,10 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     UpdatePlayWindowWidth();
 
-                    PlayWindow = new Views.PlayWindow();
-                    PlayWindow.Owner = View;
+                    PlayWindow = new Views.PlayWindow
+                    {
+                        Owner = View
+                    };
                     PlayWindow?.Show();
                 });
             });
@@ -150,7 +153,7 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(OpenSettingFolderCommand, () =>
             {
-                var openDir = Path.GetDirectoryName(SettingPath.Value);
+                var openDir = Path.GetDirectoryName(SettingPath.ActualPath.Value);
                 if (!Directory.Exists(openDir))
                 {
                     return;
@@ -164,12 +167,29 @@ namespace PresentationMovieMaker.ViewModels
                 MovieSetting.ResetToDefault();
             });
 
+            Subscribe(ExportNarrationCommand, () =>
+            {
+                var narrations = MovieSetting.PageInfos.SelectMany(x => x.NarrationInfos).Select(x => x.SpeechText.Value);
+                var exportText = string.Join("\n\n", narrations);
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Title = "ナレーションのエクスポート",
+                    Filter = "テキストファイル|*.txt"
+                };
+                if (saveFileDialog.ShowDialog(View) ?? false)
+                {
+                    var outputPath = saveFileDialog.FileName;
+                    File.WriteAllText(outputPath, exportText);
+                    WriteLogLine($"ナレーションをエクスポートしました。\"{outputPath}\"");
+                }
+            });
+
             OpenSettingCommand.Subscribe(() =>
             {
                 var dialog = new OpenFileDialog();
-                if (!string.IsNullOrEmpty(SettingPath.Value))
+                if (!string.IsNullOrEmpty(SettingPath.ActualPath.Value))
                 {
-                    var dir = Path.GetDirectoryName(SettingPath.Value);
+                    var dir = Path.GetDirectoryName(SettingPath.ActualPath.Value);
                     if (Directory.Exists(dir))
                     {
                         dialog.InitialDirectory = dir;
@@ -179,13 +199,13 @@ namespace PresentationMovieMaker.ViewModels
                 dialog.Filter = "設定ファイル (*.json)|*.json|全てのファイル (*.*)|*.*";
                 if (dialog.ShowDialog() == true)
                 {
-                    SettingPath.Value = dialog.FileName;
+                    SettingPath.Path.Value = dialog.FileName;
                 }
             }).AddTo(Disposable);
 
             SaveSettingCommand.Subscribe(() =>
             {
-                if (string.IsNullOrEmpty(SettingPath.Value))
+                if (string.IsNullOrEmpty(SettingPath.ActualPath.Value))
                 {
                     var dialog = new SaveFileDialog();
                     if (dialog.ShowDialog() != true)
@@ -193,18 +213,18 @@ namespace PresentationMovieMaker.ViewModels
                         return;
                     }
 
-                    SettingPath.Value = dialog.FileName;
+                    SettingPath.Path.Value = dialog.FileName;
                 }
 
-                SaveSettings(SettingPath.Value);
-                WriteLogLine($"設定を保存しました。\n{SettingPath.Value}");
+                SaveSettings(SettingPath.ActualPath.Value);
+                WriteLogLine($"設定を保存しました。\n{SettingPath.ActualPath.Value}");
             }).AddTo(Disposable);
 
             const string cacheDirName = "SlideCache";
             const float cacheImageSizeMultiply = 1.0f / 8.0f;
             Subscribe(SaveSlideCacheCommand, () =>
             {
-                var dir = Path.GetDirectoryName(SettingPath.Value);
+                var dir = Path.GetDirectoryName(SettingPath.ActualPath.Value);
                 if (dir is null || !Directory.Exists(dir))
                 {
                     WriteErrorLogLine($"設定ファイルのディレクトリが取得できません。");
@@ -232,7 +252,7 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(RelocateNarrationInfoCommand, () =>
             {
-                var dir = Path.GetDirectoryName(SettingPath.Value);
+                var dir = Path.GetDirectoryName(SettingPath.ActualPath.Value);
                 if (dir is null || !Directory.Exists(dir))
                 {
                     WriteErrorLogLine($"設定ファイルのディレクトリが取得できません。");
@@ -288,7 +308,7 @@ namespace PresentationMovieMaker.ViewModels
                 });
             });
 
-            SettingPath.Subscribe(path =>
+            SettingPath.ActualPath.Subscribe(path =>
             {
                 LoadSettings(path);
             }).AddTo(Disposable);
@@ -401,14 +421,19 @@ namespace PresentationMovieMaker.ViewModels
 
         private void UpdatePlayWindowWidth()
         {
+            if (!FitsWindowSizeToBackgroundImage.Value)
+            {
+                return;
+            }
+
             var bgPath = MovieSetting.SlideBackgroundImagePath.Value.ActualPath.Value;
             if (File.Exists(bgPath))
             {
                 // スライド背景があればスライド背景からウインドウサイズ設定
-                var size = ImageUtility.GetImageSize(bgPath);
-                AspectRatio.Value = size.Width / (double)size.Height;
-                PlayWindowWidth.Value = size.Width;
-                UpdateHeight();
+                var (Width, Height) = ImageUtility.GetImageSize(bgPath);
+                AspectRatio.Value = Width / (double)Height;
+                PlayWindowWidth.Value = Width;
+                PlayWindowHeight.Value = Height;
             }
             else
             {
@@ -417,12 +442,12 @@ namespace PresentationMovieMaker.ViewModels
                 if (firstPage is not null)
                 {
                     var path = firstPage.ImagePath.Value.ActualPath.Value;
-                    if (IsImageFile(path) && File.Exists(path))
+                    if (ImageUtility.IsImageFile(path) && File.Exists(path))
                     {
-                        var size = ImageUtility.GetImageSize(path);
-                        AspectRatio.Value = size.Width / (double)size.Height;
-                        PlayWindowWidth.Value = size.Width;
-                        UpdateHeight();
+                        var (Width, Height) = ImageUtility.GetImageSize(path);
+                        AspectRatio.Value = Width / (double)Height;
+                        PlayWindowWidth.Value = Width;
+                        PlayWindowHeight.Value = Height;
                     }
                 }
             }
@@ -433,7 +458,7 @@ namespace PresentationMovieMaker.ViewModels
             SetPageInfoByPageType(page?.PageType.Value ?? default);
 
             CurrentPageTitle.Value = page?.Title.Value ?? string.Empty;
-            CurrentPageDescription.Value = page?.Description.Value ?? string.Empty;
+            CurrentPageDescription.Value = page?.GetDescription() ?? string.Empty;
             SlideSubImageMargin.Value = page?.SubImageMargin.Value ?? 30.0;
 
             Application.Current.Dispatcher.Invoke(() =>
@@ -499,7 +524,10 @@ namespace PresentationMovieMaker.ViewModels
 
         private void ResetFace()
         {
-            MouthBitmap.Value = _pronuunciationBitmaps['n'];
+            if (_pronuunciationBitmaps.ContainsKey('n'))
+            {
+                MouthBitmap.Value = _pronuunciationBitmaps['n'];
+            }
             EyeBitmap.Value = _eyeBitmaps[EyePattern.Open];
             FaceOpacity.Value = 1.0;
         }
@@ -519,19 +547,6 @@ namespace PresentationMovieMaker.ViewModels
 
             IsPaused.Value = false;
             _cancellationTokenSource.Cancel();
-        }
-
-        private static bool IsImageFile(string path)
-        {
-            switch (Path.GetExtension(path))
-            {
-                case ".png":
-                case ".jpg":
-                case ".bmp":
-                    return true;
-                default:
-                    return false;
-            }
         }
 
         private void PlayNarrationAudio(PathViewModel audioPath, float volume, CancellationToken linkedCt)
@@ -562,7 +577,7 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     _bgmFileReader.Volume = targetVolume;
                 }
-                LoopStream loop = new LoopStream(reader);
+                LoopStream loop = new(reader);
                 _bgmOutputDevice.Init(loop);
 
                 _bgmOutputDevice.Volume = 1.0f;
@@ -639,7 +654,7 @@ namespace PresentationMovieMaker.ViewModels
         {
             while (IsPaused.Value)
             {
-                this.Sleep(100);
+                Thread.Sleep(100);
             }
         }
 
@@ -656,13 +671,29 @@ namespace PresentationMovieMaker.ViewModels
                 WaitResume();
                 string inputText = text;
                 CurrentPronunciation.Value = string.Empty;
-                int applauseIndex = text.IndexOf(ApplauseMark);
-                if (applauseIndex >= 0)
+
+                // SE再生の特殊記号解析
                 {
-                    // SEの再生を予約
-                    NextSoundEffectCharacterPosition = applauseIndex;
-                    NextSoundEffectPath = ApplausePath.Value;
-                    inputText = text.Replace(ApplauseMark, string.Empty);
+                    int applauseIndex = text.IndexOf(ApplauseMark);
+                    if (applauseIndex >= 0)
+                    {
+                        // SEの再生を予約
+                        NextSoundEffectCharacterPosition = applauseIndex;
+                        NextSoundEffectPath = ApplausePath.Value;
+                        inputText = text.Replace(ApplauseMark, string.Empty);
+                    }
+                }
+
+                // Description の更新
+                {
+                    string pattern = @"\[(\d+)\]";
+                    var matches = Regex.Matches(inputText, pattern);
+                    if (matches.Any())
+                    {
+                        var match = matches.First();
+                        this.CurrentPageDescription.Value = info.Parent.GetDescription(match.Value);
+                        inputText = TextUtility.RemoveMatchesString(inputText, matches);
+                    }
                 }
 
                 {
@@ -686,8 +717,10 @@ namespace PresentationMovieMaker.ViewModels
 
         private void PlayAudio(string actualPath, float volume, CancellationToken linkedCt)
         {
-            var audioFile = new AudioFileReader(actualPath);
-            audioFile.Volume = volume;
+            var audioFile = new AudioFileReader(actualPath)
+            {
+                Volume = volume
+            };
             _outputDevice.Init(audioFile);
 
             var duration = SoundUtility.GetWavFileDuration(actualPath);
@@ -752,7 +785,7 @@ namespace PresentationMovieMaker.ViewModels
             EyeBitmap.Value = _eyeBitmaps[EyePattern.Open];
         }
 
-        private bool IsCancelException(Exception exception)
+        private static bool IsCancelException(Exception exception)
         {
             if (IsCanceledExceptionType(exception))
             {
@@ -773,13 +806,13 @@ namespace PresentationMovieMaker.ViewModels
             return false;
         }
 
-        private bool IsCanceledExceptionType(Exception? exception)
+        private static bool IsCanceledExceptionType(Exception? exception)
         {
             return exception is TaskCanceledException || exception is OperationCanceledException;
         }
 
 
-        private void Wait(TimeSpan duration, CancellationToken linkedCt)
+        private static void Wait(TimeSpan duration, CancellationToken linkedCt)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -871,9 +904,11 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<VerticalAlignment> CurrentPageTitleVerticalAlignment { get; } = new();
         public ReactiveProperty<HorizontalAlignment> CurrentPageTitleHorizontalAlignment { get; } = new();
+        public ReactiveProperty<TextAlignment> CurrentPageTitleTextAlignment { get; } = new();
         public ReactiveProperty<double> CurrentPageTitleVerticalOffset { get; } = new();
         public ReactiveProperty<double> CurrentPageTitleHorizontalOffset { get; } = new();
 
+        public ReactiveProperty<bool> FitsWindowSizeToBackgroundImage { get; } = new(true);
         public ReactiveProperty<bool> IsPlaying { get; } = new ReactiveProperty<bool>(false);
         public ReactiveProperty<bool> IsPaused { get; } = new ReactiveProperty<bool>(false);
         public ReactiveProperty<string> PlayButtonLabel { get; } = new ReactiveProperty<string>("再生開始");
@@ -891,6 +926,8 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveCommand SaveSettingCommand { get; } = new ReactiveCommand();
         public ReactiveCommand OpenSettingFolderCommand { get; } = new ReactiveCommand();
         public ReactiveCommand CreateNewSettingCommand { get; } = new ReactiveCommand();
+
+        public ReactiveCommand ExportNarrationCommand { get; } = new();
 
         public ReactiveCommand SaveSlideCacheCommand { get; } = new ReactiveCommand();
         public ReactiveCommand RelocateNarrationInfoCommand { get; } = new ReactiveCommand();
@@ -923,7 +960,7 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<BitmapSource> ImageSource { get; } = new ReactiveProperty<BitmapSource>();
 
-        public ReactiveProperty<string> SettingPath { get; } = new ReactiveProperty<string>();
+        public PathViewModel SettingPath { get; } = new PathViewModel();
 
         public MovieSettingViewModel MovieSetting { get; }
 
@@ -959,7 +996,7 @@ namespace PresentationMovieMaker.ViewModels
         }
         public void WriteErrorLogLine(string message, Exception exception)
         {
-            StringBuilder errorMessage = new StringBuilder(message);
+            StringBuilder errorMessage = new(message);
             var tmpException = exception;
             while (tmpException != null)
             {
@@ -976,22 +1013,12 @@ namespace PresentationMovieMaker.ViewModels
             SaveSettings(MovieSetting.ToSerializable(), path);
         }
 
-        public string ApplicationSettingPath
+        public static string ApplicationSettingPath
         {
             get
             {
-                var assembly = Assembly.GetEntryAssembly();
-                if (assembly is null)
-                {
-                    throw new Exception();
-                }
-
-                var dirPath = Path.GetDirectoryName(assembly.Location);
-                if (dirPath is null)
-                {
-                    throw new Exception();
-                }
-
+                var assembly = Assembly.GetEntryAssembly() ?? throw new Exception();
+                var dirPath = Path.GetDirectoryName(assembly.Location) ?? throw new Exception();
                 var path = Path.Combine(dirPath, "ApplicationSetting.json");
                 return path;
             }
@@ -1006,7 +1033,7 @@ namespace PresentationMovieMaker.ViewModels
                 return;
             }
 
-            this.SettingPath.Value = deserialized.MovieSettingPath;
+            this.SettingPath.Path.Value = deserialized.MovieSettingPath;
             SoundUtility.AzureServiceRegion = deserialized.AzureServiceRegion;
             SoundUtility.AzureSubscriptionKey = deserialized.AzureSubscriptionKey;
             ApplausePath.Value = deserialized.AudioApplausePath;
@@ -1018,17 +1045,19 @@ namespace PresentationMovieMaker.ViewModels
 
         public void SaveApplicationSettings()
         {
-            var setting = new ApplicationSetting();
-            setting.MovieSettingPath = this.SettingPath.Value;
-            setting.BouyomiChanPath = BouyomiChanPath.Value.ActualPath.Value;
-            setting.BouyomiChanRemoteTalkPath = BouyomiChanRemoteTalkPath.Value.ActualPath.Value;
-            setting.AzureSubscriptionKey = SoundUtility.AzureSubscriptionKey;
-            setting.AzureServiceRegion = SoundUtility.AzureServiceRegion;
+            var setting = new ApplicationSetting
+            {
+                MovieSettingPath = this.SettingPath.ActualPath.Value,
+                BouyomiChanPath = BouyomiChanPath.Value.ActualPath.Value,
+                BouyomiChanRemoteTalkPath = BouyomiChanRemoteTalkPath.Value.ActualPath.Value,
+                AzureSubscriptionKey = SoundUtility.AzureSubscriptionKey,
+                AzureServiceRegion = SoundUtility.AzureServiceRegion
+            };
             var path = ApplicationSettingPath;
             SaveSettings(setting, path);
         }
 
-        private string? SaveSettings<T>(T target, string path)
+        private static string? SaveSettings<T>(T target, string path)
         {
             var savePath = path;
             var options = new JsonSerializerOptions()
@@ -1079,7 +1108,10 @@ namespace PresentationMovieMaker.ViewModels
             FaceRotateCenterX.Value = 120;
             FaceRotateCenterY.Value = 120;
             EyeBitmap.Value = _eyeBitmaps[EyePattern.Open];
-            MouthBitmap.Value = _pronuunciationBitmaps['n'];
+            if (_pronuunciationBitmaps.ContainsKey('n'))
+            {
+                MouthBitmap.Value = _pronuunciationBitmaps['n'];
+            }
         }
 
         private void UpdateBitmapSource(PathViewModel pathViewModel, Action<BitmapSource> update)
@@ -1098,7 +1130,7 @@ namespace PresentationMovieMaker.ViewModels
             }
         }
 
-        private BitmapSource CreateBitmapSource(string path)
+        private static BitmapSource CreateBitmapSource(string path)
         {
             return ImageUtility.ConvertBitmapToBitmapSource(new System.Drawing.Bitmap(path));
         }

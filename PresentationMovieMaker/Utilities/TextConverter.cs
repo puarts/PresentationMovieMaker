@@ -20,7 +20,7 @@ namespace PresentationMovieMaker.Utilities
             int GetConversion([MarshalAs(UnmanagedType.BStr)] string @string, int start, int length, [MarshalAs(UnmanagedType.BStr)] out string result);
         }
 
-        private IFELanguage _ifelang;
+        private readonly IFELanguage _ifelang;
 
         public TextConverter()
         {

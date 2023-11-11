@@ -12,7 +12,7 @@ namespace PresentationMovieMaker.Views
 
     public class StrokeAdorner : Adorner
     {
-        private TextBlock _textBlock;
+        private readonly TextBlock _textBlock;
 
         private Brush _stroke;
         private ushort _strokeThickness;
@@ -102,13 +102,14 @@ namespace PresentationMovieMaker.Views
                 _textBlock.FontSize,
                     Brushes.Black // This brush does not matter since we use the geometry of the text. 
                     , 1.0
-            );
-
-            formattedText.TextAlignment = _textBlock.TextAlignment;
-            formattedText.Trimming = _textBlock.TextTrimming;
-            formattedText.LineHeight = _textBlock.LineHeight;
-            formattedText.MaxTextWidth = _textBlock.ActualWidth - _textBlock.Padding.Left - _textBlock.Padding.Right;
-            formattedText.MaxTextHeight = _textBlock.ActualHeight - _textBlock.Padding.Top;// - _textBlock.Padding.Bottom;
+            )
+            {
+                TextAlignment = _textBlock.TextAlignment,
+                Trimming = _textBlock.TextTrimming,
+                LineHeight = _textBlock.LineHeight,
+                MaxTextWidth = _textBlock.ActualWidth - _textBlock.Padding.Left - _textBlock.Padding.Right,
+                MaxTextHeight = _textBlock.ActualHeight - _textBlock.Padding.Top// - _textBlock.Padding.Bottom;
+            };
             while (formattedText.Extent == double.NegativeInfinity)
             {
                 formattedText.MaxTextHeight++;
@@ -125,7 +126,7 @@ namespace PresentationMovieMaker.Views
 
     public class StrokeTextBlock : TextBlock
     {
-        private StrokeAdorner _adorner;
+        private readonly StrokeAdorner _adorner;
         private bool _adorned = false;
 
         public StrokeTextBlock()
@@ -278,14 +279,11 @@ namespace PresentationMovieMaker.Views
 
         private static void ensureAdorner(DependencyObject d, Action<StrokeAdorner> action)
         {
-            var tb = d as TextBlock;
-            if (tb == null) throw new Exception("StrokeAdorner only works on TextBlocks");
+            var tb = d as TextBlock ?? throw new Exception("StrokeAdorner only works on TextBlocks");
             EventHandler? f = null;
             f = new EventHandler((o, e) =>
             {
-                var adornerLayer = AdornerLayer.GetAdornerLayer(tb);
-                if (adornerLayer == null) 
-                    throw new Exception("AdornerLayer should not be empty");
+                var adornerLayer = AdornerLayer.GetAdornerLayer(tb) ?? throw new Exception("AdornerLayer should not be empty");
                 var adorners = adornerLayer.GetAdorners(tb);
                 var adorner = adorners == null ? null : adorners.OfType<StrokeAdorner>().FirstOrDefault();
                 if (adorner == null)

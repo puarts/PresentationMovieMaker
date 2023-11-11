@@ -16,7 +16,7 @@ namespace PresentationMovieMaker.Utilities
 {
     public static class SoundUtility
     {
-        private static string speechRecognitionLanguage = "ja-JP";
+        private static readonly string speechRecognitionLanguage = "ja-JP";
 
         public static string AzureSubscriptionKey { get; set; } = string.Empty;
         public static string AzureServiceRegion { get; set; } = string.Empty;

@@ -15,7 +15,14 @@ namespace PresentationMovieMakerTest
     public class SpeechTest
     {
         [TestMethod]
-        public void VoiceVoxEnumerateSpeakersTest()
+        public void VoicevoxUserDictionaryTest()
+        {
+            var result = VoicevoxUtility.GetUserDictWords().Result;
+            Console.WriteLine(result);
+        }
+
+        [TestMethod]
+        public void VoicevoxEnumerateSpeakersTest()
         {
             var speakers = VoicevoxUtility.EnumerateSpeakers().ToArray();
             foreach (var speaker in speakers)
@@ -28,7 +35,7 @@ namespace PresentationMovieMakerTest
         }
 
         [TestMethod]
-        public void VoiceVoxTest()
+        public void VoicevoxTest()
         {
             // ’¼ÚÄ¶
             VoicevoxUtility.Speek("‚±‚ê‚Í’¼ÚÄ¶‚·‚éƒeƒXƒg‚Å‚·", 39).Wait();

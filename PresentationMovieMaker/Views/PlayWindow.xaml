@@ -32,7 +32,6 @@
     </Window.ContextMenu>
 
     <Grid x:Name="rootCanvas">
-
-        <local:SlideView DataContext="{Binding .}" />
+        <local:SlideView x:Name="SlideView" DataContext="{Binding .}" />
     </Grid>
 </Window>

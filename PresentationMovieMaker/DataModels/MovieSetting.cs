@@ -42,6 +42,8 @@ namespace PresentationMovieMaker.DataModels
 
         public string SlideBackgroundImagePath { get; set; } = string.Empty;
 
+        public double DescriptionFontSize { get; set; } = 50;
+
         // キャラクター設定
 
         public double CharacterVerticalOffset { get; set; } = 0.0;
@@ -57,5 +59,10 @@ namespace PresentationMovieMaker.DataModels
         public string ImageBodyPath { get; set; } = string.Empty;
         public string ImageFaceBasePath { get; set; } = string.Empty;
         public double CaptionBackgroundOpacity { get; set; } = 0.3;
+
+        public int MovieFadeOutMilliseconds { get; set; } = 3000;
+
+        public double Width { get; set; }
+        public double Height { get; set; }
     }
 }

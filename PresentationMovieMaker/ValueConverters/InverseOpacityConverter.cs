@@ -10,7 +10,7 @@ namespace PresentationMovieMaker.Views
 {
     public class InverseOpacityConverter: IValueConverter
     {
-        public static InverseOpacityConverter Instance => new InverseOpacityConverter();
+        public static InverseOpacityConverter Instance => new();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {

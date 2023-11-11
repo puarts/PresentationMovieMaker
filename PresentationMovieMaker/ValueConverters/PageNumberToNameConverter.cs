@@ -10,7 +10,7 @@ namespace PresentationMovieMaker.Views
 {
     public class PageNumberToNameConverter : IValueConverter
     {
-        public static PageNumberToNameConverter Instance => new PageNumberToNameConverter();
+        public static PageNumberToNameConverter Instance => new();
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {

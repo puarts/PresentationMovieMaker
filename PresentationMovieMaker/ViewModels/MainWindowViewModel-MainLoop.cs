@@ -102,7 +102,7 @@ namespace PresentationMovieMaker.ViewModels
                     IsCaptionVisible.Value = false;
 
                     timerCancellationTokenSource.Cancel();
-                    timerUpdateTask.Wait();
+                    timerUpdateTask.Wait(ct);
                     timerUpdateTask.Dispose();
                 }
             }, ct);
@@ -139,7 +139,7 @@ namespace PresentationMovieMaker.ViewModels
                 var pageInfo = MovieSetting.PageInfos[_pageIndex];
                 if (pageInfo != null)
                 {
-                    if (IsImageFile(pageInfo.ImagePath.Value.ActualPath.Value))
+                    if (ImageUtility.IsImageFile(pageInfo.ImagePath.Value.ActualPath.Value))
                     {
                         var currentBufferIndex = _pageIndex % 2;
                         var nextBufferIndex = currentBufferIndex == 0 ? 1 : 0;
@@ -150,9 +150,9 @@ namespace PresentationMovieMaker.ViewModels
                             imagePaths[currentBufferIndex].Value = pageInfo.ImagePath.Value.ActualPath.Value;
                             View?.Dispatcher.Invoke(() =>
                             {
-                            // manualだとPauseしないとずっと読み込まれない
-                                PlayWindow?.PlayMediaElement(currentBufferIndex);
-                            });
+                                // manualだとPauseしないとずっと読み込まれない
+                                PlayWindow?.SlideView?.PlayMediaElement(currentBufferIndex);
+                            }, ct);
                             //while (!this.IsMediaLoaded)
                             //{
                             //    this.Sleep(30);
@@ -186,7 +186,7 @@ namespace PresentationMovieMaker.ViewModels
                     CurrentAnimationTime.Value += timeOffset;
                     AnimateFaceRotation();
                 }
-            });
+            }, ct);
 
             this.Sleep(500);
 
@@ -200,6 +200,8 @@ namespace PresentationMovieMaker.ViewModels
                 var pageInfo = MovieSetting.PageInfos[_pageIndex];
                 var nextPageInfo = _pageIndex + 1 < pageCount ? MovieSetting.PageInfos[_pageIndex + 1] : null;
 
+                if (!pageInfo.IsEnabled.Value) continue;
+
                 CurrentPage.Value = pageInfo;
 
                 using (_goToNexPageCancellationTokenSource = new CancellationTokenSource())
@@ -207,252 +209,203 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     var goNextCt = _goToNexPageCancellationTokenSource.Token;
                     var goBackCt = _goBackToPreviousPageCancellationTokenSource.Token;
-                    using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, goNextCt, goBackCt))
+                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, goNextCt, goBackCt);
+                    var linkedCt = linkedCts.Token;
+
+                    Task.Run(() =>
                     {
-                        var linkedCt = linkedCts.Token;
-
-                        Task.Run(() =>
+                        if (pageInfo.BgmPath is not null && !(pageInfo.BgmPath.Value.IsEmpty()))
                         {
-                            if (pageInfo.BgmPath is not null && !(pageInfo.BgmPath.Value.IsEmpty()))
-                            {
-                                FadeOutCurrentBgm(pageInfo.BgmFadeMiliseconds.Value);
-                                float volume = pageInfo.OverwritesBgmVolume.Value ? (float)pageInfo.BgmVolume.Value : (float)MovieSetting.BgmVolume.Value;
-                                StartBgm(pageInfo.BgmPath.Value.ActualPath.Value, volume, true, pageInfo.BgmFadeMiliseconds.Value);
-                            }
-                            else if (pageInfo.OverwritesBgmVolume.Value && _bgmFileReader is not null)
-                            {
-                                // 現在流れているBGMの音量を変更する
-                                if (pageInfo.BgmVolume.Value == 0.0f)
-                                {
-                                    _bgmOutputDevice.Stop();
-                                }
-                                else
-                                {
-                                    if (_bgmOutputDevice.PlaybackState != PlaybackState.Playing)
-                                    {
-                                        _bgmOutputDevice.Play();
-                                    }
-                                    _bgmFileReader.Volume = (float)pageInfo.BgmVolume.Value;
-                                }
-                            }
-                        }, linkedCt);
-
-
-                        _playPageTask = Task.Run(() =>
+                            FadeOutCurrentBgm(pageInfo.BgmFadeMiliseconds.Value);
+                            float volume = pageInfo.OverwritesBgmVolume.Value ? (float)pageInfo.BgmVolume.Value : (float)MovieSetting.BgmVolume.Value;
+                            StartBgm(pageInfo.BgmPath.Value.ActualPath.Value, volume, true, pageInfo.BgmFadeMiliseconds.Value);
+                        }
+                        else if (pageInfo.OverwritesBgmVolume.Value && _bgmFileReader is not null)
                         {
-                            try
+                            // 現在流れているBGMの音量を変更する
+                            if (pageInfo.BgmVolume.Value == 0.0f)
                             {
-                                //while (!this.IsMediaLoaded)
-                                //{
-                                //    this.Sleep(30);
-                                //}
-
-                                if (MediaDucration.HasTimeSpan)
+                                _bgmOutputDevice.Stop();
+                            }
+                            else
+                            {
+                                if (_bgmOutputDevice.PlaybackState != PlaybackState.Playing)
                                 {
-                                    // 動画の時はサイズが違って後ろが見えちゃうので、後ろのバッファも消す必要があるので仕方なく消す
-                                    bufferVisibilities[1].Value = currentBufferIndex == 1;
-                                    bufferVisibilities[0].Value = currentBufferIndex == 0;
+                                    _bgmOutputDevice.Play();
                                 }
-                                else
-                                {
-                                    // 後ろのバッファを消さない事で、ガビガビしなくなる
-                                    bufferVisibilities[1].Value = currentBufferIndex == 1;
-                                    bufferVisibilities[0].Value = true;
-                                }
-                                //bufferVisibilities[nextBufferIndex].Value = false;
-                                //bufferVisibilities[currentBufferIndex].Value = true;
+                                _bgmFileReader.Volume = (float)pageInfo.BgmVolume.Value;
+                            }
+                        }
+                    }, linkedCt);
 
-                                //if (currentBufferIndex == 0)
-                                //{
-                                //bufferVisibilities[currentBufferIndex].Value = true;
-                                //bufferVisibilities[nextBufferIndex].Value = false;
-                                //}
-                                //else
-                                //{
-                                //}
-                                //this.Sleep(100);
-                                //PlayWindow?.ResetVisibleChangedFlag();
-                                //if (!bufferVisibilities[currentBufferIndex].Value)
-                                //{
-                                //    bufferVisibilities[currentBufferIndex].Value = true;
-                                //    PlayWindow?.WaitVisibleChanged();
-                                //}
 
-                                //PlayWindow?.ResetVisibleChangedFlag();
-                                //if (bufferVisibilities[nextBufferIndex].Value)
-                                //{
-                                //    bufferVisibilities[nextBufferIndex].Value = false;
-                                //    PlayWindow?.WaitVisibleChanged();
-                                //}
+                    // 一回ダブルバッファリングは忘れる
+                    this.IsMediaLoaded = false;
+                    this.MediaDucration = new Duration();
+                    currentBufferIndex = 0;
+                    bool hasVideo = !string.IsNullOrEmpty(pageInfo.VideoPath.Value.ActualPath.Value);
+                    if (hasVideo)
+                    {
+                        // 動画読み込み
+                        bufferVisibilities[currentBufferIndex].Value = true;
+                        imagePaths[currentBufferIndex].Value = pageInfo.VideoPath.Value.ActualPath.Value;
+                        View?.Dispatcher.Invoke(() =>
+                        {
+                            // Playすることで開かれ、開かれたらコールバックで一時停止するので、
+                            // 動画が停止した状態になる
+                            PlayWindow?.SlideView?.PlayMediaElement(0);
+                        }, ct);
+                        while (!this.IsMediaLoaded)
+                        {
+                            Thread.Sleep(100);
+                        }
+                    }
 
-                                if (nextPageInfo is not null)
-                                {
-                                    rotateAngles[nextBufferIndex].Value = nextPageInfo.RotationAngle.Value;
-                                    if (imagePaths[nextBufferIndex].Value != nextPageInfo.ImagePath.Value.ActualPath.Value)
-                                    {
-                                        WriteLogLine($"Start load MediaElement: bufferIndex = {nextBufferIndex}");
-                                        this.IsMediaLoaded = false;
-                                        imagePaths[nextBufferIndex].Value = nextPageInfo.ImagePath.Value.ActualPath.Value;
-                                        //while (!this.IsMediaLoaded) ;
-                                        View?.Dispatcher.Invoke(() =>
-                                        {
-                                            PlayWindow?.PlayMediaElement(nextBufferIndex);
-                                        });
-                                    }
-                                }
+                    _playPageTask = Task.Run(() =>
+                    {
+                        try
+                        {
+                            linkedCt.ThrowIfCancellationRequested();
 
-                                // ロード後にちょっとスリープを入れないとガビガビしてしまう
-                                //this.Sleep(100);
-                                //bufferVisibilities[nextBufferIndex].Value = false;
-
-                                //this.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
-
-                                linkedCt.ThrowIfCancellationRequested();
-
-                                var stopwatch = new Stopwatch();
-                                stopwatch.Start();
-                                TimeSpan mediaDuration = new TimeSpan(0);
-                                if (MediaDucration.HasTimeSpan)
-                                {
-                                    mediaDuration = MediaDucration.TimeSpan;
-                                    View?.Dispatcher.Invoke(() =>
-                                    {
-                                        PlayWindow?.SetMediaVolume(pageInfo.MediaVolume.Value, currentBufferIndex);
-                                        PlayWindow?.PlayMediaElement(currentBufferIndex);
-                                    });
-                                }
-
+                            var stopwatch = new Stopwatch();
+                            if (hasVideo)
+                            {
+                                // 動画再生開始
                                 View?.Dispatcher.Invoke(() =>
                                 {
-                                    // 動画再生
-                                    PlayWindow?.PlayMediaElement(currentBufferIndex);
-                                });
+                                    PlayWindow?.SlideView?.SetMediaVolume(pageInfo.MediaVolume.Value, currentBufferIndex);
+                                    PlayWindow?.SlideView?.PlayMediaElement(currentBufferIndex);
+                                }, ct);
+                            }
 
-                                // ページ切り替え時の音が設定されていない場合は、デフォルトのSEを再生
-                                var pageType = pageInfo.PageType.Value;
-                                bool usesDefaultSe = _pageIndex != 0
-                                && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0);
-                                if (usesDefaultSe)
+                            // ページ切り替え時の音が設定されていない場合は、デフォルトのSEを再生
+                            var pageType = pageInfo.PageType.Value;
+                            bool usesDefaultSe = _pageIndex != 0
+                            && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0);
+                            if (usesDefaultSe)
+                            {
+                                var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageType);
+                                if (!audioPath.IsEmpty())
                                 {
-                                    var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageType);
-                                    if (!audioPath.IsEmpty())
+                                    bool isParallel = pageType == PageType.TitleAndBody
+                                        // ナレーションがあったら間を置かない
+                                        || (pageType == PageType.SectionHeader && pageInfo.NarrationInfos.Any());
+                                    if (isParallel)
                                     {
-                                        bool isParallel = pageType == PageType.TitleAndBody
-                                            // ナレーションがあったら間を置かない
-                                            || (pageType == PageType.SectionHeader && pageInfo.NarrationInfos.Any());
-                                        if (isParallel)
-                                        {
-                                            Task.Run(() => PlayNarrationAudio(audioPath, 1.0f, linkedCt));
-                                        }
-                                        else
-                                        {
-                                            PlayNarrationAudio(audioPath, 1.0f, linkedCt);
-                                        }
-                                    }
-                                }
-
-                                foreach (var info in pageInfo.NarrationInfos)
-                                {
-                                    void PlayAllNarrationAudio(NarrationInfoViewModel info)
-                                    {
-                                        if (info.AudioPaths.Count > 0)
-                                        {
-                                            foreach (var audioPath in info.AudioPaths)
-                                            {
-                                                PlayNarrationAudio(audioPath, (float)info.AudioVolume.Value, linkedCt);
-                                            }
-                                        }
-                                    }
-
-                                    this.CaptionMarginBottom.Value = info.CaptionMarginBottom.Value;
-
-                                    // とりあえず先にオーディオ再生
-                                    if (info.IsAudioParallel.Value)
-                                    {
-                                        Task.Run(() => PlayAllNarrationAudio(info), linkedCt);
+                                        Task.Run(() =>
+                                            PlayNarrationAudio(audioPath, 1.0f, linkedCt), linkedCt);
                                     }
                                     else
                                     {
-                                        PlayAllNarrationAudio(info);
-                                    }
-
-
-                                    // 合成音声再生
-                                    {
-                                        WaitResume();
-                                        if (info.PreBlankMilliseconds.Value > 0)
-                                        {
-                                            ThreadUtility.Wait(info.PreBlankMilliseconds.Value, ct, 10, () =>
-                                            {
-                                                BlinkEyeRandom();
-                                            });
-                                        }
-
-                                        SpeechText(info, linkedCt);
-
-                                        ResetFace();
-                                        if (info.PostBlankMilliseconds.Value > 0)
-                                        {
-                                            ThreadUtility.Wait(info.PostBlankMilliseconds.Value, ct, 10, () =>
-                                            {
-                                                BlinkEyeRandom();
-                                            });
-                                        }
+                                        PlayNarrationAudio(audioPath, 1.0f, linkedCt);
                                     }
                                 }
-
-                                // 動画の場合は再生完了を待つ
-                                while (stopwatch.Elapsed < mediaDuration)
-                                {
-                                    this.Sleep(10);
-                                    linkedCt.ThrowIfCancellationRequested();
-                                }
-                                stopwatch.Stop();
-
-                                linkedCt.ThrowIfCancellationRequested();
-
-                                this.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
                             }
-                            catch (Exception exception)
+
+                            foreach (var info in pageInfo.NarrationInfos)
                             {
-                                SoundUtility.CancelSpeakingAll();
-                                if (IsCancelException(exception))
+                                void PlayAllNarrationAudio(NarrationInfoViewModel info)
                                 {
-                                    if (goBackCt.IsCancellationRequested)
+                                    if (info.AudioPaths.Count > 0)
                                     {
-                                        if (_pageIndex > 0)
+                                        foreach (var audioPath in info.AudioPaths)
                                         {
-                                            _pageIndex = _pageIndex - 2;
+                                            PlayNarrationAudio(audioPath, (float)info.AudioVolume.Value, linkedCt);
                                         }
                                     }
+                                }
+
+                                this.CaptionMarginBottom.Value = info.CaptionMarginBottom.Value;
+
+                                // とりあえず先にオーディオ再生
+                                if (info.IsAudioParallel.Value)
+                                {
+                                    Task.Run(() => PlayAllNarrationAudio(info), linkedCt);
                                 }
                                 else
                                 {
-                                    throw;
+                                    PlayAllNarrationAudio(info);
+                                }
+
+
+                                // 合成音声再生
+                                {
+                                    WaitResume();
+                                    if (info.PreBlankMilliseconds.Value > 0)
+                                    {
+                                        ThreadUtility.Wait(info.PreBlankMilliseconds.Value, ct, 10, () =>
+                                        {
+                                            BlinkEyeRandom();
+                                        });
+                                    }
+
+                                    SpeechText(info, linkedCt);
+
+                                    ResetFace();
+                                    if (info.PostBlankMilliseconds.Value > 0)
+                                    {
+                                        ThreadUtility.Wait(info.PostBlankMilliseconds.Value, ct, 10, () =>
+                                        {
+                                            BlinkEyeRandom();
+                                        });
+                                    }
                                 }
                             }
-                            finally
-                            {
-                                _outputDevice?.Stop();
-                            }
-                        }, linkedCt);
 
-                        try
-                        {
-                            _playPageTask.Wait();
+                            // 動画の場合は再生完了を待つ
+                            if (hasVideo && View is not null && PlayWindow is not null)
+                            {
+                                while (!View.Dispatcher.Invoke(() => PlayWindow.SlideView.IsMediaEnded()))
+                                {
+                                    Thread.Sleep(100);
+                                    linkedCt.ThrowIfCancellationRequested();
+                                }
+                                bufferVisibilities[currentBufferIndex].Value = false;
+                            }
+
+                            linkedCt.ThrowIfCancellationRequested();
+
+                            this.Sleep(pageInfo.PagingIntervalMilliseconds.Value);
                         }
                         catch (Exception exception)
                         {
                             SoundUtility.CancelSpeakingAll();
-                            if (!IsCancelException(exception))
+                            if (IsCancelException(exception))
+                            {
+                                if (goBackCt.IsCancellationRequested)
+                                {
+                                    if (_pageIndex > 0)
+                                    {
+                                        _pageIndex -= 2;
+                                    }
+                                }
+                            }
+                            else
                             {
                                 throw;
                             }
                         }
-                        _playPageTask = null;
+                        finally
+                        {
+                            _outputDevice?.Stop();
+                        }
+                    }, linkedCt);
 
-                        ct.ThrowIfCancellationRequested();
+                    try
+                    {
+                        _playPageTask.Wait(ct);
                     }
+                    catch (Exception exception)
+                    {
+                        SoundUtility.CancelSpeakingAll();
+                        if (!IsCancelException(exception))
+                        {
+                            throw;
+                        }
+                    }
+                    _playPageTask = null;
+
+                    ct.ThrowIfCancellationRequested();
                 }
 
                 _goToNexPageCancellationTokenSource = null;
@@ -463,11 +416,12 @@ namespace PresentationMovieMaker.ViewModels
             var task = Task.Run(() =>
             {
                 FadeOutCurrentBgm(MovieSetting.BgmFadeOutMilliseconds.Value);
-            });
+            }, ct);
 
             // 終了後の余白
             {
                 // フェードアウト
+                int sleepMilliseconds = MovieSetting.MovieFadeOutMilliseconds.Value / 100;
                 for (int i = 100; i >= 0; --i)
                 {
                     double opacity = i / 100.0;
@@ -475,12 +429,12 @@ namespace PresentationMovieMaker.ViewModels
                     //MediaElement1.Opacity.Value = opacity;
                     //MediaElement2.Opacity.Value = opacity;
                     //FaceOpacity.Value = opacity;
-                    Thread.Sleep(30);
+                    Thread.Sleep(sleepMilliseconds);
                 }
                 BlackOpacity.Value = 1.0;
             }
 
-            task.Wait();
+            task.Wait(ct);
         }
 
         internal void Sleep(int milliseconds)
@@ -498,11 +452,13 @@ namespace PresentationMovieMaker.ViewModels
                 case PageType.SectionHeader:
                     CurrentPageTitleVerticalAlignment.Value = VerticalAlignment.Center;
                     CurrentPageTitleHorizontalAlignment.Value = HorizontalAlignment.Center;
+                    CurrentPageTitleTextAlignment.Value = TextAlignment.Center;
                     TitleFontSize.Value = 100;
                     break;
                 case PageType.TitleAndBody:
                     CurrentPageTitleVerticalAlignment.Value = VerticalAlignment.Top;
                     CurrentPageTitleHorizontalAlignment.Value = HorizontalAlignment.Left;
+                    CurrentPageTitleTextAlignment.Value = TextAlignment.Left;
                     TitleFontSize.Value = 70;
                     break;
             }

@@ -12,7 +12,7 @@ namespace PresentationMovieMaker.Utilities
     /// </summary>
     public class LoopStream : WaveStream
     {
-        WaveStream sourceStream;
+        readonly WaveStream sourceStream;
 
         /// <summary>
         /// Creates a new Loop stream

@@ -4,13 +4,184 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:diag="clr-namespace:System.Diagnostics;assembly=WindowsBase"
+    xmlns:dm="clr-namespace:PresentationMovieMaker.DataModels"
     xmlns:local="clr-namespace:PresentationMovieMaker.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
     d:DataContext="{d:DesignInstance vm:MovieSettingViewModel}"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
+    <UserControl.Resources>
+        <ObjectDataProvider
+            x:Key="PageTypeDataProvider"
+            MethodName="GetValues"
+            ObjectType="{x:Type sys:Enum}">
+            <ObjectDataProvider.MethodParameters>
+                <x:Type TypeName="dm:PageType" />
+            </ObjectDataProvider.MethodParameters>
+        </ObjectDataProvider>
+
+        <DataTemplate DataType="{x:Type vm:PageInfoViewModel}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                    </Grid.RowDefinitions>
+                    <Image Source="{Binding Image.Value, TargetNullValue={x:Null}}" />
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Padding="0,0,5,0" Text="{Binding TotalCharCount.Value, Converter={x:Static local:AddSuffixConverter.Instance}, ConverterParameter='文字'}" />
+                        <TextBlock Text="{Binding TotalDuration.Value, Converter={x:Static local:TimeSpanToStringConverter.Instance}}" />
+                    </StackPanel>
+                    <Button
+                        Grid.Row="1"
+                        Margin="10"
+                        Command="{Binding PlayAudioCommand}"
+                        Content="{Binding PlayAudioButtonLabel.Value}" />
+                </Grid>
+                <GridSplitter
+                    Grid.Row="0"
+                    Height="5"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Bottom" />
+                <TabControl Grid.Row="1">
+                    <TabItem Header="ナレーション">
+                        <ScrollViewer>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Width="20"
+                                        Margin="5"
+                                        Command="{Binding AddNarrationInfoCommand}"
+                                        IsEnabled="{Binding Parent.Parent.IsPlaying.Value, Converter={x:Static local:InverseBooleanConverter.Instance}}">
+                                        ＋
+                                    </Button>
+                                    <Button
+                                        Width="20"
+                                        Margin="5"
+                                        Command="{Binding RemoveNarrationInfoCommand}"
+                                        IsEnabled="{Binding Parent.Parent.IsPlaying.Value, Converter={x:Static local:InverseBooleanConverter.Instance}}">
+                                        －
+                                    </Button>
+                                    <Button Width="20" Command="{Binding MoveNarrationInfoUpCommand}">↑</Button>
+                                    <Button Width="20" Command="{Binding MoveNarrationInfoDownCommand}">↓</Button>
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding NarrationInfos}" SelectedItem="{Binding SelectedNarrationInfo.Value}">
+                                    <ListBox.Template>
+                                        <ControlTemplate>
+                                            <ItemsPresenter />
+                                        </ControlTemplate>
+                                    </ListBox.Template>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <ContentPresenter Content="{Binding .}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Header="視覚情報/BGM">
+                        <ScrollViewer>
+                            <StackPanel>
+                                <Label>スライド種類:</Label>
+                                <ComboBox ItemsSource="{Binding Source={StaticResource PageTypeDataProvider}}" SelectedItem="{Binding PageType.Value}" />
+                                <Label>タイトル:</Label>
+                                <TextBox AcceptsReturn="True" Text="{Binding Title.Value, UpdateSourceTrigger=PropertyChanged}" />
+                                <Label>本文:</Label>
+                                <TextBox
+                                    Height="100"
+                                    AcceptsReturn="True"
+                                    Text="{Binding Description.Value, UpdateSourceTrigger=PropertyChanged}"
+                                    VerticalScrollBarVisibility="Visible" />
+                                <CheckBox IsChecked="{Binding ForceDisplayAllDescription.Value}">全本文を強制表示</CheckBox>
+                                <Label>スライド内画像パス:</Label>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Width="20"
+                                        Margin="5"
+                                        Command="{Binding AddSubImageCommand}"
+                                        IsEnabled="{Binding Parent.Parent.IsPlaying.Value, Converter={x:Static local:InverseBooleanConverter.Instance}}">
+                                        ＋
+                                    </Button>
+                                    <Button
+                                        Width="20"
+                                        Margin="5"
+                                        Command="{Binding RemoveSubImageCommand}"
+                                        IsEnabled="{Binding Parent.Parent.IsPlaying.Value, Converter={x:Static local:InverseBooleanConverter.Instance}}">
+                                        －
+                                    </Button>
+                                    <Button Width="20" Command="{Binding MoveNarrationInfoUpCommand}">↑</Button>
+                                    <Button Width="20" Command="{Binding MoveNarrationInfoDownCommand}">↓</Button>
+                                </StackPanel>
+                                <ItemsControl ItemsSource="{Binding SubImagePaths}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ContentPresenter Content="{Binding .}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <Label>スライド内画像マージン</Label>
+                                <local:SliderBox
+                                    Interval="1"
+                                    Maximum="200"
+                                    Minimum="0"
+                                    Value="{Binding SubImageMargin.Value}" />
+                                <Label>BGMパス:</Label>
+                                <ContentPresenter Content="{Binding BgmPath.Value}" />
+                                <Label>メイン動画パス:</Label>
+                                <ContentPresenter Content="{Binding VideoPath.Value}" />
+
+                                <Label>メイン画像パス:</Label>
+                                <ContentPresenter Content="{Binding ImagePath.Value}" />
+                                <Label>メイン画像、動画の回転:</Label>
+                                <local:SliderBox
+                                    Interval="1"
+                                    Maximum="360"
+                                    Minimum="0"
+                                    Value="{Binding RotationAngle.Value}" />
+                                <Label>動画のボリューム</Label>
+                                <local:SliderBox
+                                    Interval="0.05"
+                                    Maximum="1"
+                                    Minimum="0"
+                                    Value="{Binding MediaVolume.Value}" />
+                                <Label>ページ切り替え間隔(ms)</Label>
+                                <local:SliderBox
+                                    Interval="1"
+                                    Maximum="5000"
+                                    Minimum="0"
+                                    Value="{Binding PagingIntervalMilliseconds.Value}" />
+
+                                <Label>BGM切り替え間隔(ms)</Label>
+                                <local:SliderBox
+                                    Interval="1"
+                                    Maximum="10000"
+                                    Minimum="0"
+                                    Value="{Binding BgmFadeMiliseconds.Value}" />
+
+                                <CheckBox IsChecked="{Binding OverwritesBgmVolume.Value}">BGMボリュームを上書きする</CheckBox>
+                                <Label>BGMボリューム</Label>
+                                <local:SliderBox
+                                    Interval="0.01"
+                                    IsEnabled="{Binding OverwritesBgmVolume.Value}"
+                                    Maximum="1"
+                                    Minimum="0"
+                                    Value="{Binding BgmVolume.Value}" />
+                                <CheckBox IsChecked="{Binding IsFaceVisible.Value}">顔の表示</CheckBox>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
     <TabControl>
         <TabItem Header="編集">
             <Grid>
@@ -70,13 +241,20 @@
                                 </ListView.InputBindings>
                                 <ListView.View>
                                     <GridView>
+                                        <GridViewColumn Header="有効">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate DataType="{x:Type vm:PageInfoViewModel}">
+                                                    <CheckBox IsChecked="{Binding IsEnabled.Value}" />
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
                                         <GridViewColumn
                                             Width="40"
                                             DisplayMemberBinding="{Binding PageNumber.Value}"
                                             Header="ページ" />
                                         <GridViewColumn Header="メディア">
                                             <GridViewColumn.CellTemplate>
-                                                <DataTemplate>
+                                                <DataTemplate DataType="{x:Type vm:PageInfoViewModel}">
                                                     <StackPanel>
                                                         <Image Width="200" Source="{Binding Image.Value, TargetNullValue={x:Null}}" />
                                                         <TextBlock Text="{Binding Title.Value}" />
@@ -97,7 +275,7 @@
                         VerticalAlignment="Stretch"
                         ShowsPreview="True" />
                     <Grid Grid.Column="1" Visibility="{Binding IsPageInfoSelected.Value, Converter={x:Static local:BoolToVisibilityConverter.Instance}}">
-                        <local:PageInfoEditView DataContext="{Binding SelectedPageInfo.Value}" />
+                        <ContentPresenter Content="{Binding SelectedPageInfo.Value}" />
                     </Grid>
                 </Grid>
                 <Border
@@ -213,6 +391,12 @@
                     </GroupBox>
                     <GroupBox Header="その他">
                         <StackPanel>
+                            <Label>文章フォントサイズ:</Label>
+                            <local:SliderBox
+                                Interval="1"
+                                Maximum="100"
+                                Minimum="8"
+                                Value="{Binding DescriptionFontSize.Value}" />
                             <Label>ページ切り替え間隔(ms):</Label>
                             <local:SliderBox
                                 Interval="1"

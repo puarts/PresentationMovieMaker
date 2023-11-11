@@ -29,8 +29,15 @@ namespace PresentationMovieMaker.ViewModels
             Subscribe(Path, value => UpdatePathAndActualPath());
             Subscribe(OpenPathCommand, () =>
             {
-                var dialog = new OpenFileDialog();
-                dialog.Filter = "全てのファイル (*.*)|*.*";
+                var dialog = new OpenFileDialog
+                {
+                    Filter = "全てのファイル (*.*)|*.*"
+                };
+                if (File.Exists(Path.Value))
+                {
+                    dialog.InitialDirectory = System.IO.Path.GetDirectoryName(Path.Value);
+                }
+
                 if (dialog.ShowDialog() == true)
                 {
                     Path.Value = dialog.FileName;

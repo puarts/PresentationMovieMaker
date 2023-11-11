@@ -12,6 +12,7 @@
     d:DataContext="{d:DesignInstance vm:MainWindowViewModel}"
     d:DesignHeight="450"
     d:DesignWidth="800"
+    Background="Black"
     mc:Ignorable="d">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -65,34 +66,37 @@
                 Height="{Binding ActualHeight, ElementName=mainCanvas}"
                 Source="{Binding MovieSetting.SlideBackgroundImage.Value}" />
 
-            <!--  スライドメイン画像  -->
-            <Image
+            <Grid Width="{Binding ActualWidth, ElementName=mainCanvas}" Height="{Binding ActualHeight, ElementName=mainCanvas}">
+                <!--  スライドメイン画像  -->
+                <!--<Image
                 Width="{Binding ActualWidth, ElementName=mainCanvas}"
                 Height="{Binding ActualHeight, ElementName=mainCanvas}"
                 Opacity="{Binding MediaElement1.Opacity.Value}"
                 Source="{Binding MediaElement1.ImagePath.Value, Converter={x:Static conv:ImageConverter.Instance}}"
                 Visibility="{Binding MediaElement1.Visiibility.Value, Converter={x:Static local:BoolToVisibilityConverter.Instance}}" />
-            <Image
-                Width="{Binding ActualWidth, ElementName=mainCanvas}"
-                Height="{Binding ActualHeight, ElementName=mainCanvas}"
-                Opacity="{Binding MediaElement2.Opacity.Value}"
-                Source="{Binding MediaElement2.ImagePath.Value, Converter={x:Static conv:ImageConverter.Instance}}"
-                Visibility="{Binding MediaElement2.Visiibility.Value, Converter={x:Static local:BoolToVisibilityConverter.Instance}}" />
-            <!--<MediaElement
-            Name="mediaElement"
-            IsVisibleChanged="mediaElement_IsVisibleChanged"
-            LoadedBehavior="Manual"
-            MediaOpened="MediaElement_MediaOpened"
-            Opacity="{Binding MediaElement1.Opacity.Value}"
-            Source="{Binding MediaElement1.ImagePath.Value}"
-            Visibility="{Binding MediaElement1.Visiibility.Value, Converter={x:Static local:BoolToVisibilityConverter.Instance}}">
-            <MediaElement.LayoutTransform>
-                <TransformGroup>
-                    <RotateTransform Angle="{Binding MediaElement1.RotationAngle.Value}" />
-                </TransformGroup>
-            </MediaElement.LayoutTransform>
-            </MediaElement>-->
-            <!--<MediaElement
+                <Image
+                    Width="{Binding ActualWidth, ElementName=mainCanvas}"
+                    Height="{Binding ActualHeight, ElementName=mainCanvas}"
+                    Opacity="{Binding MediaElement2.Opacity.Value}"
+                    Source="{Binding MediaElement2.ImagePath.Value, Converter={x:Static conv:ImageConverter.Instance}}"
+                    Visibility="{Binding MediaElement2.Visiibility.Value, Converter={x:Static local:BoolToVisibilityConverter.Instance}}" />-->
+                <MediaElement
+                    Name="mediaElement"
+                    Height="{Binding ActualHeight, ElementName=mainCanvas}"
+                    HorizontalAlignment="Center"
+                    IsVisibleChanged="mediaElement_IsVisibleChanged"
+                    LoadedBehavior="Manual"
+                    MediaOpened="MediaElement_MediaOpened"
+                    Opacity="{Binding MediaElement1.Opacity.Value}"
+                    Source="{Binding MediaElement1.ImagePath.Value}"
+                    Visibility="{Binding MediaElement1.Visiibility.Value, Converter={x:Static local:BoolToVisibilityConverter.Instance}}">
+                    <MediaElement.LayoutTransform>
+                        <TransformGroup>
+                            <RotateTransform Angle="{Binding MediaElement1.RotationAngle.Value}" />
+                        </TransformGroup>
+                    </MediaElement.LayoutTransform>
+                </MediaElement>
+                <!--<MediaElement
                 Name="mediaElement2"
                 IsVisibleChanged="mediaElement_IsVisibleChanged"
                 LoadedBehavior="Manual"
@@ -106,7 +110,7 @@
                     </TransformGroup>
                 </MediaElement.LayoutTransform>
             </MediaElement>-->
-
+            </Grid>
 
             <!--  スライドサブ画像  -->
             <ItemsControl
@@ -156,7 +160,7 @@
                     FontWeight="Bold"
                     Foreground="White"
                     Text="{Binding CurrentPageTitle.Value}"
-                    TextAlignment="Center"
+                    TextAlignment="{Binding CurrentPageTitleTextAlignment.Value}"
                     TextWrapping="Wrap">
                     <TextBlock.FontSize>
                         <MultiBinding Converter="{x:Static local:ActualFaceWidthConverter.Instance}">

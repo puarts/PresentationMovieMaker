@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using static PresentationMovieMaker.Utilities.TextUtility;
 
@@ -11,7 +12,7 @@ namespace PresentationMovieMaker.Utilities
 {
     public static class TextUtility
     {
-        private static Dictionary<int, char> _visemeToPron = new Dictionary<int, char>()
+        private static readonly Dictionary<int, char> _visemeToPron = new()
         {
             // 子音っぽいのは MinValue を入れてる
             // https://docs.microsoft.com/ja-jp/azure/cognitive-services/speech-service/how-to-speech-synthesis-viseme?pivots=programming-language-csharp#map-phonemes-to-visemes
@@ -98,6 +99,15 @@ namespace PresentationMovieMaker.Utilities
                     yield return split;
                 }
             }
+        }
+
+        public static string RemoveMatchesString(string input, MatchCollection matches)
+        {
+            foreach (Match match in matches)
+            {
+                input = input.Replace(match.Value, "");
+            }
+            return input;
         }
     }
 }

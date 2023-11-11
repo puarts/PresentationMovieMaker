@@ -118,7 +118,7 @@ public static class VoicevoxUtility
     //const string baseUrl = "http://localhost:50021/";
     const string baseUrl = "http://127.0.0.1:50021/";
 
-    private static readonly HttpClient _client = new HttpClient();
+    private static readonly HttpClient _client = new();
 
     public static IEnumerable<Speaker> EnumerateSpeakers()
     {
@@ -133,6 +133,17 @@ public static class VoicevoxUtility
         {
             yield return speakerInfo;
         }
+    }
+
+    public static async Task<string> GetUserDictWords()
+    {
+        using var requestMessage = new HttpRequestMessage(new HttpMethod("GET"), $"{baseUrl}user_dict");
+        requestMessage.Headers.TryAddWithoutValidation("accept", "application/json");
+
+        requestMessage.Content = new StringContent("");
+        requestMessage.Content.Headers.ContentType = MediaTypeHeaderValue.Parse("application/x-www-form-urlencoded");
+        var response = await _client.SendAsync(requestMessage);
+        return await response.Content.ReadAsStringAsync();
     }
 
     private static async Task<string> GetSpeakersAsJson()

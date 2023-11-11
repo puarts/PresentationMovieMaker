@@ -33,6 +33,7 @@ namespace PresentationMovieMaker.DataModels
         }
 
         public string ImagePath { get; set; } = string.Empty;
+        public string VideoPath { get; set; } = string.Empty;
 
         public string BgmPath { get; set; } = string.Empty;
         public int BgmFadeMiliseconds { get; set; } = 3000;
@@ -58,6 +59,7 @@ namespace PresentationMovieMaker.DataModels
         public double SubImageMargin { get; set; } = 30.0;
 
         public bool IsFaceVisible { get; set; } = true;
+        public bool IsEnabled { get; set; } = true;
 
     }
 }

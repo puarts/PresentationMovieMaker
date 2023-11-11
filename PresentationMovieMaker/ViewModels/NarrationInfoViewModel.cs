@@ -17,11 +17,11 @@ namespace PresentationMovieMaker.ViewModels
 {
     public class NarrationInfoViewModel : CompositeDisposableBase
     {
-        private WaveOutEvent _outputDevice = new WaveOutEvent();
+        private readonly WaveOutEvent _outputDevice = new();
         private CancellationTokenSource? _playSelectedAudioCancellationTokenSource = null;
         private Prompt? _currentPrompt = null;
         private Process? _currentSoftalkProcess = null;
-        private CancellationTokenSource _softalkCancellationTokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource _softalkCancellationTokenSource = new();
 
 
 
@@ -42,6 +42,10 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(RemoveAudioPathCommand, () =>
             {
+                if (!AudioPaths.Any())
+                {
+                    return;
+                }
                 AudioPaths.RemoveAt(AudioPaths.Count - 1);
             });
 
@@ -120,6 +124,7 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     StopSpeech();
                     IsReadingText.Value = false;
+                    Parent?.Parent?.Parent?.SyncPageInfo(Parent);
                 }
                 else
                 {
@@ -129,6 +134,7 @@ namespace PresentationMovieMaker.ViewModels
                         SoundUtility.CancelSpeakingAll();
                         StartSpeech();
                         IsReadingText.Value = false;
+                        Parent?.Parent?.Parent?.SyncPageInfo(Parent);
                     });
                 }
             });
@@ -658,7 +664,7 @@ namespace PresentationMovieMaker.ViewModels
             this.Parent.Parent.Parent?.Sleep(milliseconds);
         }
 
-        private void Wait(TimeSpan duration, CancellationToken? ct)
+        private static void Wait(TimeSpan duration, CancellationToken? ct)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();

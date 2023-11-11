@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -19,7 +20,7 @@ namespace PresentationMovieMaker.ViewModels
 {
     public class MovieSettingViewModel : CompositeDisposableBase
     {
-        private ILogger _logger;
+        private readonly ILogger _logger;
         public MovieSettingViewModel(ILogger logger)
         {
             _logger = logger;
@@ -27,6 +28,8 @@ namespace PresentationMovieMaker.ViewModels
             // デフォルト値
             CharacterHorizontalOffset.Value = 20;
 
+            Properties.Add(Width);
+            Properties.Add(Height);
             Properties.Add(SlideBackgroundImagePath);
             Properties.Add(ImageBodyPath);
             Properties.Add(ImageFaceBasePath);
@@ -44,6 +47,7 @@ namespace PresentationMovieMaker.ViewModels
             Properties.Add(DefaultSectionPageTurningAudioPath);
             Properties.Add(DefaultPageTurningAudioVolume);
             Properties.Add(CaptionBackgroundOpacity);
+            Properties.Add(MovieFadeOutMilliseconds);
 
             PageInfos.CollectionChanged += (o, e) =>
             {
@@ -83,9 +87,11 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(BrowseBgmFileCommand, () =>
             {
-                var dialog = new OpenFileDialog();
-                // ファイルの種類を設定
-                dialog.Filter = "WAVファイル (*.wav)|*.wav|MP3ファイル (*.mp3)|*.mp3|全てのファイル (*.*)|*.*";
+                var dialog = new OpenFileDialog
+                {
+                    // ファイルの種類を設定
+                    Filter = "WAVファイル (*.wav)|*.wav|MP3ファイル (*.mp3)|*.mp3|全てのファイル (*.*)|*.*"
+                };
 
                 // ダイアログを表示する
                 if (dialog.ShowDialog() == true)
@@ -194,8 +200,7 @@ namespace PresentationMovieMaker.ViewModels
             }).AddTo(Disposable);
             PastePageCommand.Subscribe(() =>
             {
-                var text = Clipboard.GetData(DataFormats.Text) as string;
-                if (text is null)
+                if (Clipboard.GetData(DataFormats.Text) is not string text)
                 {
                     return;
                 }
@@ -339,6 +344,13 @@ namespace PresentationMovieMaker.ViewModels
                 Parent?.SyncCaptionMargin();
             });
 
+            _ = Width.CombineLatest(Height).Subscribe(x =>
+            {
+                if (Parent is null) return;
+                Parent.PlayWindowWidth.Value = x.First;
+                Parent.PlayWindowHeight.Value = x.Second;
+            }).AddTo(Disposable);
+
             Subscribe(BgmVolume, value =>
             {
                 Parent?.SyncBgmVolumeFromSetting();
@@ -347,6 +359,13 @@ namespace PresentationMovieMaker.ViewModels
             Subscribe(SlideBackgroundImagePath.Value.ActualPath, value =>
             {
                 UpdateSlideBackground(value);
+            });
+            Subscribe(DescriptionFontSize, value =>
+            {
+                if (Parent is not null)
+                {
+                    Parent.DescriptionFontSize.Value = value;
+                }
             });
 
             VoiceName.Value = VoiceNames.First();
@@ -371,12 +390,15 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<double> CaptionMarginBottom { get; } = new ReactiveProperty<double>(60);
 
         public ReactiveProperty<int> BgmFadeOutMilliseconds { get; } = new ReactiveProperty<int>(3000);
+        public IntPropertyViewModel MovieFadeOutMilliseconds { get; } = new IntPropertyViewModel("動画フェードアウト時間(ms)", 0, 5000);
 
         public ReactiveProperty<bool> ShowPageNumber { get; } = new ReactiveProperty<bool>(false);
         public ReactiveProperty<double> PageNumberPosX { get; } = new ReactiveProperty<double>(0);
         public ReactiveProperty<double> PageNumberPosY { get; } = new ReactiveProperty<double>(0);
         public ReactiveProperty<double> PageNumberFontSize { get; } = new ReactiveProperty<double>(8.0);
 
+        public DoublePropertyViewModel Width { get; } = new DoublePropertyViewModel("幅", 1, 1920);
+        public DoublePropertyViewModel Height { get; } = new DoublePropertyViewModel("高さ", 1, 1920);
 
         public ReactiveProperty<double> BgmVolume { get; } = new ReactiveProperty<double>();
         public ReactiveProperty<double> NarrationVolume { get; } = new ReactiveProperty<double>();
@@ -429,6 +451,8 @@ namespace PresentationMovieMaker.ViewModels
         public ReactiveProperty<string> AudioRoot { get; } = new ReactiveProperty<string>();
 
         public ReactiveProperty<double> CaptionFontSize { get; } = new ReactiveProperty<double>(30.0);
+
+        public ReactiveProperty<double> DescriptionFontSize { get; } = new ReactiveProperty<double>(50.0);
 
         public ObservableCollection<PageInfoViewModel> PageInfos { get; } = new ObservableCollection<PageInfoViewModel>();
 
@@ -537,15 +561,19 @@ namespace PresentationMovieMaker.ViewModels
 
             BgmPath.Value = dataModel.BgmPath;
             BgmVolume.Value = dataModel.BgmVolume;
+            Width.Value = dataModel.Width == 0 ? 640 : dataModel.Width;
+            Height.Value = dataModel.Height == 0 ? 640 : dataModel.Height;
             ShowPageNumber.Value = dataModel.ShowPageNumber;
             PageNumberPosX.Value = dataModel.PageNumberPosX;
             PageNumberPosY.Value = dataModel.PageNumberPosY;
             PageNumberFontSize.Value = dataModel.PageNumberFontSize;
             BgmFadeOutMilliseconds.Value = dataModel.BgmFadeOutMilliseconds;
+            MovieFadeOutMilliseconds.Value = dataModel.MovieFadeOutMilliseconds;
             CaptionMarginBottom.Value = dataModel.CaptionMarginBottom;
             CaptionMarginLeft.Value = dataModel.CaptionMarginLeft;
             FaceImageWidth.Value = dataModel.FaceImageWidth;
             CaptionFontSize.Value = dataModel.CaptionFontSize;
+            DescriptionFontSize.Value = dataModel.DescriptionFontSize;
             NarrationVolume.Value = dataModel.NarrationVolume;
             PagingIntervalMilliseconds.Value = dataModel.PagingIntervalMilliseconds;
 
@@ -569,14 +597,18 @@ namespace PresentationMovieMaker.ViewModels
 
         public MovieSetting ToSerializable()
         {
-            var serial = new MovieSetting();
-            serial.AudioRoot = AudioRoot.Value;
-            serial.ImageRoot = ImageRoot.Value;
-            serial.VoiceName = VoiceName.Value;
-            serial.NarrationLineBreakInterval = NarrationLineBreakInterval.Value;
+            var serial = new MovieSetting
+            {
+                AudioRoot = AudioRoot.Value,
+                ImageRoot = ImageRoot.Value,
+                VoiceName = VoiceName.Value,
+                NarrationLineBreakInterval = NarrationLineBreakInterval.Value
+            };
             serial.PageInfos.AddRange(PageInfos.Select(x => x.ToSerializable()));
             serial.BgmVolume = BgmVolume.Value;
             serial.PagingIntervalMilliseconds = PagingIntervalMilliseconds.Value;
+            serial.Width = Width.Value;
+            serial.Height = Height.Value;
 
             serial.BgmPath = BgmPath.Value;
             serial.ShowPageNumber = ShowPageNumber.Value;
@@ -584,11 +616,13 @@ namespace PresentationMovieMaker.ViewModels
             serial.PageNumberPosY = PageNumberPosY.Value;
             serial.PageNumberFontSize = PageNumberFontSize.Value;
             serial.BgmFadeOutMilliseconds = BgmFadeOutMilliseconds.Value;
+            serial.MovieFadeOutMilliseconds = MovieFadeOutMilliseconds.Value;
             serial.CaptionMarginLeft = CaptionMarginLeft.Value;
             serial.CaptionMarginBottom = CaptionMarginBottom.Value;
             serial.FaceImageWidth = FaceImageWidth.Value;
             serial.CaptionFontSize = CaptionFontSize.Value;
             serial.NarrationVolume = NarrationVolume.Value;
+            serial.DescriptionFontSize = DescriptionFontSize.Value;
 
             serial.CharacterHorizontalOffset = CharacterHorizontalOffset.Value;
             serial.CharacterVerticalOffset = CharacterVerticalOffset.Value;
@@ -611,22 +645,19 @@ namespace PresentationMovieMaker.ViewModels
 
         public PathViewModel GetDefaultPageTurningAudioPath(PageType pageType)
         {
-            switch (pageType)
+            return pageType switch
             {
-                case PageType.Title:
-                case PageType.SectionHeader:
-                    return DefaultSectionPageTurningAudioPath.Value.IsEmpty() ?
-                        DefaultPageTurningAudioPath.Value : DefaultSectionPageTurningAudioPath.Value;
-                case PageType.TitleAndBody:
-                    return DefaultPageTurningAudioPath.Value;
-                default:
-                    throw new Exception();
-            }
+                PageType.Title or PageType.SectionHeader => 
+                    DefaultSectionPageTurningAudioPath.Value.IsEmpty() ?
+                                        DefaultPageTurningAudioPath.Value : DefaultSectionPageTurningAudioPath.Value,
+                PageType.TitleAndBody => DefaultPageTurningAudioPath.Value,
+                _ => throw new Exception(),
+            };
         }
 
         public void UpdateDuration()
         {
-            TimeSpan duration = new TimeSpan();
+            TimeSpan duration = new();
             foreach (var info in PageInfos)
             {
                 duration += info.TotalDuration.Value;
