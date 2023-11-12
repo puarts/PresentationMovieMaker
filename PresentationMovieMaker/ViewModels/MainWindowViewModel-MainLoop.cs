@@ -102,8 +102,14 @@ namespace PresentationMovieMaker.ViewModels
                     IsCaptionVisible.Value = false;
 
                     timerCancellationTokenSource.Cancel();
-                    timerUpdateTask.Wait(ct);
-                    timerUpdateTask.Dispose();
+                    try
+                    {
+                        timerUpdateTask.Wait(ct);
+                        timerUpdateTask.Dispose();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
                 }
             }, ct);
         }
@@ -434,7 +440,13 @@ namespace PresentationMovieMaker.ViewModels
                 BlackOpacity.Value = 1.0;
             }
 
-            task.Wait(ct);
+            try
+            {
+                task.Wait(ct);
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
 
         internal void Sleep(int milliseconds)

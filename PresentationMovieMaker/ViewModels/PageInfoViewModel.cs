@@ -355,6 +355,7 @@ namespace PresentationMovieMaker.ViewModels
         public string GetDescription(string? mark = null)
         {
             var desc = this.Description.Value;
+            if (desc is null) return "";
 
             // [1] [2] みたいなやつを抽出したい
             string pattern = @"\[(\d+)\]";

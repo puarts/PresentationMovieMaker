@@ -808,7 +808,7 @@ namespace PresentationMovieMaker.ViewModels
 
         private static bool IsCanceledExceptionType(Exception? exception)
         {
-            return exception is TaskCanceledException || exception is OperationCanceledException;
+            return exception is OperationCanceledException;
         }
 
 
