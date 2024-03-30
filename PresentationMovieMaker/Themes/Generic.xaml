@@ -33,6 +33,54 @@
         </Setter>
     </Style>
 
+    <DataTemplate DataType="{x:Type vm:ImageSequenceViewModel}">
+        <Border
+            Background="#eee"
+            BorderBrush="Black"
+            BorderThickness="1">
+
+            <StackPanel Margin="5" Orientation="Vertical">
+                <StackPanel>
+                    <TextBlock>
+                        <Run>現在のインデックス:</Run>
+                    </TextBlock>
+                    <view:SliderBox
+                        Maximum="{Binding MaxIndex.Value}"
+                        Minimum="0"
+                        Value="{Binding CurrentIndex.Value}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        Width="20"
+                        Margin="5"
+                        Command="{Binding AddPathCommand}">
+                        +
+                    </Button>
+                    <Button
+                        Width="20"
+                        Margin="5"
+                        Command="{Binding RemovePathCommand}">
+                        -
+                    </Button>
+                </StackPanel>
+                <ListBox ItemsSource="{Binding ImagePaths}">
+                    <ListBox.Template>
+                        <ControlTemplate>
+                            <ItemsPresenter />
+                        </ControlTemplate>
+                    </ListBox.Template>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <ContentPresenter Content="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </Border>
+
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:PathViewModel}">
         <Grid>
             <Grid.RowDefinitions>

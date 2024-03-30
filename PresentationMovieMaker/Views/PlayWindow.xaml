@@ -7,8 +7,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="clr-namespace:PresentationMovieMaker.ViewModels"
     Title="PlayWindow"
-    Width="{Binding PlayWindowWidth.Value, Mode=OneWay}"
-    Height="{Binding PlayWindowHeight.Value, Mode=OneWay}"
+    Width="1440"
+    Height="810"
     d:DataContext="{d:DesignInstance vm:MainWindowViewModel}"
     AllowsTransparency="True"
     Background="Black"
@@ -32,6 +32,10 @@
     </Window.ContextMenu>
 
     <Grid x:Name="rootCanvas">
-        <local:SlideView x:Name="SlideView" DataContext="{Binding .}" />
+        <local:SlideView
+            x:Name="SlideView"
+            Width="1440"
+            Height="810"
+            DataContext="{Binding .}" />
     </Grid>
 </Window>

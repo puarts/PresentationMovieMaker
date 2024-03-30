@@ -61,7 +61,7 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     pageInfo.ImagePath.Value.RootPath.Value = value;
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             AudioRoot.Subscribe(value =>
             {
@@ -72,7 +72,7 @@ namespace PresentationMovieMaker.ViewModels
                         info.AudioRoot.Value = value;
                     }
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             Subscribe(VoiceName, name =>
             {
@@ -139,7 +139,7 @@ namespace PresentationMovieMaker.ViewModels
                     prevPage.ImagePath.Value.Path.Value = imagePath;
                 }
 
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
             MoveNarrationsToNextCommand.Subscribe(() =>
             {
                 var selectedTopPage = PageInfos.Where(x => x.IsSelected).FirstOrDefault();
@@ -161,12 +161,12 @@ namespace PresentationMovieMaker.ViewModels
                     nextPage.DeepCopyFrom(currentPage.ToSerializable());
                     nextPage.ImagePath.Value.Path.Value = imagePath;
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             AddPageCommand.Subscribe(() =>
             {
                 AddNewPage();
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             RemovePageCommand.Subscribe(() =>
             {
@@ -177,7 +177,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 ReassignPageNumber();
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             DuplicatePageCommand.Subscribe(() =>
             {
@@ -186,7 +186,7 @@ namespace PresentationMovieMaker.ViewModels
                     var newPage = AddNewPage();
                     newPage.DeepCopyFrom(pageInfo.ToSerializable());
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             var separator = "__page_info_separator__";
             CopyPageCommand.Subscribe(() =>
@@ -197,7 +197,7 @@ namespace PresentationMovieMaker.ViewModels
                     return JsonSerializer.Serialize(serial);
                 }));
                 Clipboard.SetData(DataFormats.Text, (Object)text);
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
             PastePageCommand.Subscribe(() =>
             {
                 if (Clipboard.GetData(DataFormats.Text) is not string text)
@@ -264,7 +264,7 @@ namespace PresentationMovieMaker.ViewModels
                     }
                 }
 
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             MovePageUpCommand.Subscribe(() =>
             {
@@ -281,7 +281,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 MovePageInfo(index, index - 1);
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             MovePageDownCommand.Subscribe(() =>
             {
@@ -298,7 +298,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 MovePageInfo(pageInfo, index + 1);
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             SelectedPageInfo.Subscribe(selectedPageInfo =>
             {
@@ -349,7 +349,7 @@ namespace PresentationMovieMaker.ViewModels
                 if (Parent is null) return;
                 Parent.PlayWindowWidth.Value = x.First;
                 Parent.PlayWindowHeight.Value = x.Second;
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             Subscribe(BgmVolume, value =>
             {

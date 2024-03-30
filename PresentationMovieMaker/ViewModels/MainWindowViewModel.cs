@@ -26,6 +26,7 @@ using System.Speech.Recognition;
 using System.Drawing;
 using System.Reactive.Linq;
 using System.Text.RegularExpressions;
+using System.Windows.Documents;
 
 namespace PresentationMovieMaker.ViewModels
 {
@@ -99,7 +100,7 @@ namespace PresentationMovieMaker.ViewModels
 
             _ = OpenPlayWindowCommand.Subscribe(() =>
             {
-                View?.Dispatcher.Invoke(() =>
+                View?.Dispatcher.InvokeAsync(() =>
                 {
                     UpdatePlayWindowWidth();
 
@@ -122,9 +123,9 @@ namespace PresentationMovieMaker.ViewModels
                     PlaySlideshow();
                 }
 
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
-            CancelPlayingCommand.Subscribe(() => CancelPlaying()).AddTo(Disposable);
+            CancelPlayingCommand.Subscribe(() => CancelPlaying()).AddTo(Disposer);
 
             GoToNextPageCommand.Subscribe(() =>
             {
@@ -134,7 +135,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 _goToNexPageCancellationTokenSource.Cancel();
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             GoBackToPreviousPageCommand.Subscribe(() =>
             {
@@ -144,7 +145,7 @@ namespace PresentationMovieMaker.ViewModels
                 }
 
                 _goBackToPreviousPageCancellationTokenSource.Cancel();
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             Subscribe(PauseCommand, () =>
             {
@@ -201,7 +202,7 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     SettingPath.Path.Value = dialog.FileName;
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             SaveSettingCommand.Subscribe(() =>
             {
@@ -218,7 +219,7 @@ namespace PresentationMovieMaker.ViewModels
 
                 SaveSettings(SettingPath.ActualPath.Value);
                 WriteLogLine($"設定を保存しました。\n{SettingPath.ActualPath.Value}");
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             const string cacheDirName = "SlideCache";
             const float cacheImageSizeMultiply = 1.0f / 8.0f;
@@ -298,12 +299,12 @@ namespace PresentationMovieMaker.ViewModels
                         WriteLogLine($"コピー {destName} => {name}");
                         var serial = copiedPages[destName] ?? throw new Exception();
                         var origPath = pageInfo.ImagePath.Value.Path.Value;
-                        SingletonDispatcher.Invoke(() =>
+                        SingletonDispatcher.InvokeAsync(() =>
                         {
                             // Collection 書き換えるのでUIスレッドで実行が必要
                             pageInfo.DeepCopyFrom(serial);
+                            pageInfo.ImagePath.Value.Path.Value = origPath;
                         });
-                        pageInfo.ImagePath.Value.Path.Value = origPath;
                     }
                 });
             });
@@ -311,7 +312,7 @@ namespace PresentationMovieMaker.ViewModels
             SettingPath.ActualPath.Subscribe(path =>
             {
                 LoadSettings(path);
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             Subscribe(IsPlaying, isPlaying =>
             {
@@ -461,14 +462,16 @@ namespace PresentationMovieMaker.ViewModels
             CurrentPageDescription.Value = page?.GetDescription() ?? string.Empty;
             SlideSubImageMargin.Value = page?.SubImageMargin.Value ?? 30.0;
 
-            Application.Current.Dispatcher.Invoke(() =>
+            page?.ResetSubImageIndices();
+
+            Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 SlideSubImages.Clear();
                 if (page is not null)
                 {
                     foreach (var imagePath in page.SubImagePaths)
                     {
-                        SlideSubImages.Add(imagePath);
+                        SlideSubImages.Add(imagePath.CurrentImagePath);
                     }
                 }
             });
@@ -549,7 +552,7 @@ namespace PresentationMovieMaker.ViewModels
             _cancellationTokenSource.Cancel();
         }
 
-        private void PlayNarrationAudio(PathViewModel audioPath, float volume, CancellationToken linkedCt)
+        private void PlayNarrationAudio(PathViewModel audioPath, float volume, CancellationToken? linkedCt)
         {
             WaitResume();
             var actualPath = audioPath.ActualPath.Value;
@@ -684,6 +687,8 @@ namespace PresentationMovieMaker.ViewModels
                     }
                 }
 
+                bool isNewLineOrNewImageAppeared = false;
+
                 // Description の更新
                 {
                     string pattern = @"\[(\d+)\]";
@@ -693,7 +698,36 @@ namespace PresentationMovieMaker.ViewModels
                         var match = matches.First();
                         this.CurrentPageDescription.Value = info.Parent.GetDescription(match.Value);
                         inputText = TextUtility.RemoveMatchesString(inputText, matches);
+                        isNewLineOrNewImageAppeared = true;
                     }
+                }
+
+                // 画像の更新
+                {
+                    string pattern = @"\{\d+:\d+\}";
+                    var matches = Regex.Matches(inputText, pattern);
+                    if (matches.Any())
+                    {
+                        foreach (Match match in matches.Cast<Match>())
+                        {
+                            ReadOnlySpan<char> subSpan = match.ValueSpan.Slice(start: 1, length: match.Value.Length - 2);
+                            var delimIndex = subSpan.IndexOf(':');
+                            var left = subSpan.Slice(0, delimIndex);
+                            var right = subSpan.Slice(delimIndex + 1, subSpan.Length - delimIndex - 1);
+                            if (int.TryParse(left, out int imageSequenceIndex)
+                                && int.TryParse(right, out int imageIndex))
+                            {
+                                CurrentPage.Value?.UpdateSubImageIndex(imageSequenceIndex, imageIndex);
+                            }
+                        }
+                        inputText = TextUtility.RemoveMatchesString(inputText, matches);
+                        isNewLineOrNewImageAppeared = true;
+                    }
+                }
+
+                if (isNewLineOrNewImageAppeared)
+                {
+                    PlayDefaultSoundEffectForSwitchingPage(info.Parent, linkedCt);
                 }
 
                 {
@@ -715,7 +749,7 @@ namespace PresentationMovieMaker.ViewModels
 
         public ReactiveProperty<bool> HideCaption { get; } = new(false);
 
-        private void PlayAudio(string actualPath, float volume, CancellationToken linkedCt)
+        private void PlayAudio(string actualPath, float volume, CancellationToken? linkedCt)
         {
             var audioFile = new AudioFileReader(actualPath)
             {
@@ -812,14 +846,14 @@ namespace PresentationMovieMaker.ViewModels
         }
 
 
-        private static void Wait(TimeSpan duration, CancellationToken linkedCt)
+        private static void Wait(TimeSpan duration, CancellationToken? linkedCt)
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             while (stopwatch.Elapsed < duration)
             {
                 Thread.Sleep(10);
-                linkedCt.ThrowIfCancellationRequested();
+                linkedCt?.ThrowIfCancellationRequested();
             }
             stopwatch.Stop();
         }

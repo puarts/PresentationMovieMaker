@@ -30,12 +30,15 @@ namespace PresentationMovieMaker.ViewModels
 {
     public partial class MainWindowViewModel
     {
-        public void PlaySlideshow(int startPageIndex = 0)
+        public async void PlaySlideshow(int startPageIndex = 0)
         {
             if (IsPlaying.Value)
             {
                 CancelPlaying();
-                _playTask?.Wait();
+                if (_playTask is not null)
+                {
+                    await _playTask;
+                }
             }
 
             WriteLogLine("再生開始");
@@ -290,22 +293,7 @@ namespace PresentationMovieMaker.ViewModels
                             && (!pageInfo.NarrationInfos.Any() || pageInfo.NarrationInfos.First().AudioPaths.Count == 0);
                             if (usesDefaultSe)
                             {
-                                var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageType);
-                                if (!audioPath.IsEmpty())
-                                {
-                                    bool isParallel = pageType == PageType.TitleAndBody
-                                        // ナレーションがあったら間を置かない
-                                        || (pageType == PageType.SectionHeader && pageInfo.NarrationInfos.Any());
-                                    if (isParallel)
-                                    {
-                                        Task.Run(() =>
-                                            PlayNarrationAudio(audioPath, 1.0f, linkedCt), linkedCt);
-                                    }
-                                    else
-                                    {
-                                        PlayNarrationAudio(audioPath, 1.0f, linkedCt);
-                                    }
-                                }
+                                PlayDefaultSoundEffectForSwitchingPage(pageInfo, linkedCt);
                             }
 
                             foreach (var info in pageInfo.NarrationInfos)
@@ -446,6 +434,30 @@ namespace PresentationMovieMaker.ViewModels
             }
             catch (OperationCanceledException)
             {
+            }
+        }
+
+        private void PlayDefaultSoundEffectForSwitchingPage(
+            PageInfoViewModel pageInfo, CancellationToken? linkedCt)
+        {
+            var pageType = pageInfo.PageType.Value;
+            var audioPath = MovieSetting.GetDefaultPageTurningAudioPath(pageType);
+            if (!audioPath.IsEmpty())
+            {
+                bool isParallel = pageType == PageType.TitleAndBody
+                    // ナレーションがあったら間を置かない
+                    || (pageType == PageType.SectionHeader && pageInfo.NarrationInfos.Any());
+                if (isParallel)
+                {
+                    _ = Task.Run(() =>
+                    {
+                        PlayNarrationAudio(audioPath, 1.0f, linkedCt);
+                    });
+                }
+                else
+                {
+                    PlayNarrationAudio(audioPath, 1.0f, linkedCt);
+                }
             }
         }
 

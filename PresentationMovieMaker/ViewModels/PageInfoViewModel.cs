@@ -73,7 +73,7 @@ namespace PresentationMovieMaker.ViewModels
                         _playAudioCancellationTokenSource = null;
                     });
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             IsAudioPlaying.Subscribe(isAudioPlaying =>
             {
@@ -85,11 +85,11 @@ namespace PresentationMovieMaker.ViewModels
                 {
                     PlayAudioButtonLabel.Value = "音声再生";
                 }
-            }).AddTo(Disposable);
+            }).AddTo(Disposer);
 
             Subscribe(AddSubImageCommand, () =>
             {
-                SubImagePaths.Add(new PathViewModel());
+                SubImagePaths.Add(new ImageSequenceViewModel());
             });
             Subscribe(RemoveSubImageCommand, () =>
             {
@@ -194,13 +194,25 @@ namespace PresentationMovieMaker.ViewModels
 
             Subscribe(SubImagePaths.CollectionChangedAsObservable(), e =>
             {
-                if (Parent.SelectedPageInfo?.Value == this && Parent.Parent != null)
+                if (Parent.SelectedPageInfo?.Value == this)
                 {
-                    Parent.Parent.SlideSubImages.Clear();
-                    foreach (var path in SubImagePaths)
+                    UpdateSlideSubImages();
+                }
+
+                if (e.NewItems != null)
+                {
+                    foreach (ImageSequenceViewModel item in e.NewItems)
                     {
-                        Parent.Parent.SlideSubImages.Add(path);
+                        _ = item.CurrentIndex.Subscribe(index =>
+                        {
+                            UpdateSlideSubImages();
+                        }).AddTo(Disposer);
                     }
+                }
+                if (e.OldItems != null)
+                {
+                    // todo: 本当はイベント削除しないといけない。
+                    // リークしてしまうけど、実害はほぼないはず
                 }
             });
 
@@ -272,7 +284,7 @@ namespace PresentationMovieMaker.ViewModels
             {
                 foreach (var path in dataModel.SubImagePaths)
                 {
-                    SubImagePaths.Add(new PathViewModel(path));
+                    SubImagePaths.Add(new ImageSequenceViewModel(path));
                 }
             }
         }
@@ -348,9 +360,28 @@ namespace PresentationMovieMaker.ViewModels
 
         public ObservableCollection<NarrationInfoViewModel> NarrationInfos { get; } = new ObservableCollection<NarrationInfoViewModel>();
 
-        public ObservableCollection<PathViewModel> SubImagePaths { get; } = new ObservableCollection<PathViewModel>();
+        public ObservableCollection<ImageSequenceViewModel> SubImagePaths { get; } = new();
 
         public ReactiveProperty<double> SubImageMargin { get; } = new ReactiveProperty<double>();
+
+        public void ResetSubImageIndices()
+        {
+            foreach (var subimage in SubImagePaths)
+            {
+                subimage.CurrentIndex.Value = 0;
+            }
+        }
+
+        public void UpdateSubImageIndex(int sequenceIndex, int imageIndex)
+        {
+            if (sequenceIndex >= SubImagePaths.Count)
+            {
+                return;
+            }
+
+            SubImagePaths[sequenceIndex].CurrentIndex.Value = imageIndex;
+        }
+
 
         public string GetDescription(string? mark = null)
         {
@@ -400,7 +431,7 @@ namespace PresentationMovieMaker.ViewModels
                 MediaVolume = MediaVolume.Value
             };
             serial.NarrationInfos.AddRange(NarrationInfos.Select(x => x.ToSerializable()));
-            serial.SubImagePaths.AddRange(SubImagePaths.Select(x => x.ActualPath.Value));
+            serial.SubImagePaths.AddRange(SubImagePaths.Select(x => x.ConvertPathsToString()));
             serial.PagingIntervalMilliseconds = PagingIntervalMilliseconds.Value;
             serial.Title = Title.Value;
             serial.Description = Description.Value;
@@ -473,6 +504,20 @@ namespace PresentationMovieMaker.ViewModels
                     NarrationInfos.Insert(insertIndex + 1, pageInfo);
                 }
             }
+        }
+
+        private void UpdateSlideSubImages()
+        {
+            _ = SingletonDispatcher.InvokeAsync(() =>
+            {
+                if (Parent.Parent is null) return;
+
+                Parent.Parent.SlideSubImages.Clear();
+                foreach (var path in SubImagePaths)
+                {
+                    Parent.Parent.SlideSubImages.Add(path.CurrentImagePath);
+                }
+            });
         }
     }
 }

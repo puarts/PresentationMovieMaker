@@ -13,18 +13,18 @@ namespace PresentationMovieMaker.ViewModels
 {
     public abstract class CompositeDisposableBase : INotifyPropertyChanged
     {
-        protected CompositeDisposable Disposable { get; } = new CompositeDisposable();
+        protected CompositeDisposable Disposer { get; } = new CompositeDisposable();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected void Subscribe<T>(IObservable<T> observable, Action<T> onNext)
         {
-            observable.Subscribe(onNext).AddTo(Disposable);
+            observable.Subscribe(onNext).AddTo(Disposer);
         }
 
         protected void Subscribe(ReactiveCommand observable, Action onNext)
         {
-            observable.Subscribe(onNext).AddTo(Disposable);
+            observable.Subscribe(onNext).AddTo(Disposer);
         }
 
         protected bool SetProperty<T>(ref T field, T newValue, [CallerMemberName] string propertyName = "")
